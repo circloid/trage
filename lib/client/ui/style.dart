@@ -30,21 +30,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'package:gesso/gesso.dart';
-import 'package:trage/client/cursor.dart';
-import 'package:trage/shared/vect.dart';
+import 'package:trage/client/ui/border.dart';
 
-class Renderer {
-  void print(String value, [Gesso? g]) {
-    g ??= Gesso();
-    g(value);
-  }
+class Style {
+  Style({
+    required this.primary,
+    required this.secondary,
+    required this.success,
+    required this.info,
+    required this.warning,
+    required this.error,
+    required this.border,
+  });
 
-  void horizontal(Vect vect, int length) {
-    cursor.move(vect);
-    for (int i = 0; i < length; i++) {
-      cursor.puts();
-    }
-  }
+  // static Style default = Style(
+  //   primary: Gesso(),
+  //   secondary: Gesso(),
+  //   success: Gesso(),
+  //   info: Gesso(),
+  //   warning: Gesso(),
+  //   error: Gesso(),
+  //   border: Border(horizontal: )
+  // );
 
-  void vertical(Vect vect, int length) {}
+  final Border border;
+
+  final Gesso primary;
+  final Gesso secondary;
+
+  final Gesso success;
+  final Gesso info;
+  final Gesso warning;
+  final Gesso error;
 }

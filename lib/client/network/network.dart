@@ -47,24 +47,24 @@ class NetworkListener {
 }
 
 class Network {
-  Network(this.host, this.port);
+  Network(this.socket, this.host, this.port);
+
+  static Future<Network> bind(String address, int port) async {
+    final host = InternetAddress(address);
+    final socket = await RawDatagramSocket.bind(host, port);
+    final net = Network(socket, host, port);
+    socket.listen(net._listenRawSocket);
+    return net;
+  }
 
   final Map<Object, NetworkListener> _listeners = {};
 
-  final String host;
-  RawDatagramSocket? socket;
+  final InternetAddress host;
+  final RawDatagramSocket socket;
   final int port;
 
-  Future<void> connect() async {
-    final socket = await RawDatagramSocket.bind('localhost', 4444);
-    print('Datagram socket ready to receive');
-    print('${socket.address.address}:${socket.port}');
-    socket.listen(_listenRawSocket);
-  }
-
   void _listenRawSocket(RawSocketEvent e) {
-    if (socket == null) return;
-    final Datagram? d = socket!.receive();
+    final Datagram? d = socket.receive();
     if (d == null) return;
     final String message = String.fromCharCodes(d.data).trim();
 

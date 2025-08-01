@@ -29,22 +29,14 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/client/cursor.dart';
-import 'package:trage/shared/vect.dart';
+import 'package:trage/client/network/network.dart';
+import 'package:trage/client/ui/style.dart';
+import 'package:trage/shared/models/entity/entity.dart';
 
-class Renderer {
-  void print(String value, [Gesso? g]) {
-    g ??= Gesso();
-    g(value);
-  }
+class GameState {
+  GameState(this.net, this.player, this.style);
 
-  void horizontal(Vect vect, int length) {
-    cursor.move(vect);
-    for (int i = 0; i < length; i++) {
-      cursor.puts();
-    }
-  }
-
-  void vertical(Vect vect, int length) {}
+  final Style style;
+  final Network net;
+  final Entity player;
 }

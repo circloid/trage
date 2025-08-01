@@ -29,31 +29,30 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:gesso/gesso.dart';
+//
+//
+//    ░██         ░██
+//  ░███████      ░██
+// ░██         ░████████ ░██░████  ░██████    ░████████  ░███████
+//  ░██████       ░██    ░███           ░██  ░██    ░██ ░██    ░██
+//       ░██      ░██    ░██       ░███████  ░██    ░██ ░█████████
+// ░███████       ░██    ░██      ░██   ░██  ░██   ░███ ░██
+//    ░██          ░████ ░██       ░█████░██  ░█████░██  ░███████
+//                                                  ░██
+//                                            ░███████
+//
+//
 import 'package:trage/client/cursor.dart';
-import 'package:trage/client/style.dart';
+import 'package:trage/client/game_state.dart';
+import 'package:trage/client/network/network.dart';
+import 'package:trage/shared/models/player.dart';
 import 'package:trage/shared/vect.dart';
 
-void main() {
-  final theme = Style(
-    primary: Gesso(),
-    secondary: Gesso().brightBlack,
-    success: Gesso().green,
-    info: Gesso().blue,
-    warning: Gesso().yellow.italic,
-    error: Gesso().red,
-  );
+Future<void> main() async {
+  final net = await Network.bind('127.0.0.1', 4545);
+  final player = Player(Vect.zero);
+  final state = GameState(net, player);
 
   final c = Cursor(Vect.zero);
-
   c.clear();
-
-  c.move(Vect(10, 10));
-
-  c.puts(theme.primary('testo'));
-  c.puts(theme.secondary('testo'));
-  c.puts(theme.success('testo'));
-  c.puts(theme.info('testo'));
-  c.puts(theme.warning('testo'));
-  c.puts(theme.error('testo'));
 }

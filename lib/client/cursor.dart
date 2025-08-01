@@ -34,8 +34,12 @@ import 'dart:io';
 import 'package:gesso/gesso.dart';
 import 'package:trage/shared/vect.dart';
 
+final cursor = Cursor._instance;
+
 class Cursor {
-  Cursor(this.vect);
+  Cursor._internal(this.vect);
+
+  static final Cursor _instance = Cursor._internal(Vect.zero);
 
   static const String _esc = '\x1B';
 

@@ -29,22 +29,19 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/client/cursor.dart';
-import 'package:trage/shared/vect.dart';
-
-class Renderer {
-  void print(String value, [Gesso? g]) {
-    g ??= Gesso();
-    g(value);
-  }
-
-  void horizontal(Vect vect, int length) {
-    cursor.move(vect);
-    for (int i = 0; i < length; i++) {
-      cursor.puts();
-    }
-  }
-
-  void vertical(Vect vect, int length) {}
+class Border {
+  const Border({
+    required this.horizontal,
+    required this.vertical,
+    required this.topLeft,
+    required this.topRight,
+    required this.bottomLeft,
+    required this.bottomRight,
+  });
+  final String horizontal;
+  final String vertical;
+  final String topLeft;
+  final String topRight;
+  final String bottomLeft;
+  final String bottomRight;
 }
