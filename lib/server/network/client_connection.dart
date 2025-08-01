@@ -28,38 +28,4 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-import 'dart:io';
-
-import 'package:gesso/gesso.dart';
-import 'package:trage/shared/vect.dart';
-
-class Cursor {
-  Cursor(this.vect);
-
-  static const String _esc = '\x1B';
-
-  Vect vect;
-
-  /// Setup the terminal for receive non blocking input
-  /// You need this because the classic input block all program.
-  void setup() {
-    stdin.echoMode = false;
-    stdin.lineMode = false;
-  }
-
-  void move(Vect v) {
-    vect = v;
-    stdout.write('$_esc[${vect.y.round()};${vect.x.round()}H');
-  }
-
-  void clear() => stdout.write('$_esc[2J');
-
-  void puts(String text, [Gesso? style]) {
-    style ??= Gesso();
-    text = style(text);
-    print(text);
-    vect.y++;
-    move(vect);
-  }
-}
+class ClientConnection {}

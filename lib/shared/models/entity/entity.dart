@@ -29,37 +29,42 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'dart:io';
-
-import 'package:gesso/gesso.dart';
+import 'package:trage/shared/models/entity/entity_state.dart';
 import 'package:trage/shared/vect.dart';
 
-class Cursor {
-  Cursor(this.vect);
+abstract class Entity {
+  Entity(this.position, {this.priority = 1}) : id = Object();
 
-  static const String _esc = '\x1B';
+  final Object id;
 
-  Vect vect;
+  Vect position;
 
-  /// Setup the terminal for receive non blocking input
-  /// You need this because the classic input block all program.
-  void setup() {
-    stdin.echoMode = false;
-    stdin.lineMode = false;
+  EntityState _state = EntityState.created;
+
+  bool _disposed = false;
+
+  final int priority;
+
+  EntityState get state => _state;
+
+  void init() {}
+
+  void onInit() {
+    if (_disposed) throw Exception('Bad state: entity already disposed');
   }
 
-  void move(Vect v) {
-    vect = v;
-    stdout.write('$_esc[${vect.y.round()};${vect.x.round()}H');
+  /// Call [dispose] when you want to remove it from the entities.
+  ///
+  /// After you call this the entity became useless and you can't call any other method
+  /// You MUST call it once
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
   }
 
-  void clear() => stdout.write('$_esc[2J');
-
-  void puts(String text, [Gesso? style]) {
-    style ??= Gesso();
-    text = style(text);
-    print(text);
-    vect.y++;
-    move(vect);
+  /// Methods used to change the state of the entity
+  /// By default the state is [EntityState.created]
+  void transition(EntityState newState) {
+    _state = newState;
   }
 }

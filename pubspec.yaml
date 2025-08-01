@@ -10,7 +10,8 @@ executables:
   trage: bin
 
 dependencies:
-  gesso: ^1.0.2
+  gesso: ^1.0.3
+  udp: ^5.0.3
 
 dev_dependencies:
   lints: ^5.0.0

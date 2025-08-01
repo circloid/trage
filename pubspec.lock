@@ -101,10 +101,10 @@ packages:
     dependency: "direct main"
     description:
       name: gesso
-      sha256: "6cc9a3ce54a8d8a16d01b6f690f963961044e9d88f91735a8ade47a589e6f45b"
+      sha256: "60b96e3cebc658f9b00e514c4f1f8f31b2a46b82e1d39a4d363ad21724a5771e"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "1.0.3"
   glob:
     dependency: transitive
     description:
@@ -345,6 +345,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  udp:
+    dependency: "direct main"
+    description:
+      name: udp
+      sha256: "50ea45d7ee80ad4c62de4ec0e8ed3ae65c36e9fe8cd0655a2bcd1503d2708e5a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.3"
   vm_service:
     dependency: transitive
     description:

@@ -31,35 +31,59 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import 'dart:io';
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/shared/vect.dart';
+typedef NetworkListenerCallback = void Function(String);
 
-class Cursor {
-  Cursor(this.vect);
+class NetworkListener {
+  NetworkListener(this.callback, [this.id = const Object()]);
 
-  static const String _esc = '\x1B';
+  final NetworkListenerCallback callback;
+  final Object id;
+  bool _disposed = false;
 
-  Vect vect;
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+  }
+}
 
-  /// Setup the terminal for receive non blocking input
-  /// You need this because the classic input block all program.
-  void setup() {
-    stdin.echoMode = false;
-    stdin.lineMode = false;
+class Network {
+  Network(this.host, this.port);
+
+  final Map<Object, NetworkListener> _listeners = {};
+
+  final String host;
+  RawDatagramSocket? socket;
+  final int port;
+
+  Future<void> connect() async {
+    final socket = await RawDatagramSocket.bind('localhost', 4444);
+    print('Datagram socket ready to receive');
+    print('${socket.address.address}:${socket.port}');
+    socket.listen(_listenRawSocket);
   }
 
-  void move(Vect v) {
-    vect = v;
-    stdout.write('$_esc[${vect.y.round()};${vect.x.round()}H');
+  void _listenRawSocket(RawSocketEvent e) {
+    if (socket == null) return;
+    final Datagram? d = socket!.receive();
+    if (d == null) return;
+    final String message = String.fromCharCodes(d.data).trim();
+
+    for (final listener in _listeners.values) {
+      listener.callback(message);
+    }
   }
 
-  void clear() => stdout.write('$_esc[2J');
+  void listen(NetworkListenerCallback callback, [Object? watcher]) {
+    watcher ??= Object();
+    final listener = new NetworkListener(callback);
+    _listeners[watcher] = listener;
+  }
 
-  void puts(String text, [Gesso? style]) {
-    style ??= Gesso();
-    text = style(text);
-    print(text);
-    vect.y++;
-    move(vect);
+  bool pop(Object id) {
+    if (!_listeners.containsKey(id)) return false;
+
+    _listeners.remove(id);
+
+    return true;
   }
 }

@@ -29,37 +29,30 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'dart:io';
+import 'package:trage/shared/models/entity/entity.dart';
+import 'package:trage/shared/models/entity/entity_state.dart';
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/shared/vect.dart';
+class Entities {
+  Entities();
 
-class Cursor {
-  Cursor(this.vect);
+  /// It represents the entire objects that should be rendered in the canvas
+  final Map<Object, Entity> _entities = {};
+  final List<Object> _sortedEntities = [];
 
-  static const String _esc = '\x1B';
+  void put(Entity e, [Object? id]) {
+    id ??= Object();
+    e.onInit();
+    e.transition(EntityState.active);
 
-  Vect vect;
+    if (_entities.containsKey(id)) return;
 
-  /// Setup the terminal for receive non blocking input
-  /// You need this because the classic input block all program.
-  void setup() {
-    stdin.echoMode = false;
-    stdin.lineMode = false;
+    _entities[id] = e;
+    _insertSortedKey();
   }
 
-  void move(Vect v) {
-    vect = v;
-    stdout.write('$_esc[${vect.y.round()};${vect.x.round()}H');
-  }
+  void del(Object o) {}
 
-  void clear() => stdout.write('$_esc[2J');
+  void _insertSortedKey() {}
 
-  void puts(String text, [Gesso? style]) {
-    style ??= Gesso();
-    text = style(text);
-    print(text);
-    vect.y++;
-    move(vect);
-  }
+  // void _removeSortedKey() {}
 }

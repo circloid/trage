@@ -31,35 +31,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import 'dart:io';
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/shared/vect.dart';
+class Network {
+  Network({required this.socket, required this.host, required this.port});
 
-class Cursor {
-  Cursor(this.vect);
-
-  static const String _esc = '\x1B';
-
-  Vect vect;
-
-  /// Setup the terminal for receive non blocking input
-  /// You need this because the classic input block all program.
-  void setup() {
-    stdin.echoMode = false;
-    stdin.lineMode = false;
+  static Future<Network> bind(String host, int port) async {
+    final s = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port);
+    final net = new Network(socket: s, host: InternetAddress(host), port: port);
+    s.listen(net._listenSocketDatagram);
+    return net;
   }
 
-  void move(Vect v) {
-    vect = v;
-    stdout.write('$_esc[${vect.y.round()};${vect.x.round()}H');
-  }
+  final InternetAddress host;
+  final RawDatagramSocket socket;
+  final int port;
 
-  void clear() => stdout.write('$_esc[2J');
-
-  void puts(String text, [Gesso? style]) {
-    style ??= Gesso();
-    text = style(text);
-    print(text);
-    vect.y++;
-    move(vect);
-  }
+  Future<void> _listenSocketDatagram(RawSocketEvent? e) async {}
 }

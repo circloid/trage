@@ -29,4 +29,31 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-void main() {}
+import 'package:gesso/gesso.dart';
+import 'package:trage/client/cursor.dart';
+import 'package:trage/client/style.dart';
+import 'package:trage/shared/vect.dart';
+
+void main() {
+  final theme = Style(
+    primary: Gesso(),
+    secondary: Gesso().brightBlack,
+    success: Gesso().green,
+    info: Gesso().blue,
+    warning: Gesso().yellow.italic,
+    error: Gesso().red,
+  );
+
+  final c = Cursor(Vect.zero);
+
+  c.clear();
+
+  c.move(Vect(10, 10));
+
+  c.puts(theme.primary('testo'));
+  c.puts(theme.secondary('testo'));
+  c.puts(theme.success('testo'));
+  c.puts(theme.info('testo'));
+  c.puts(theme.warning('testo'));
+  c.puts(theme.error('testo'));
+}
