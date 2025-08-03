@@ -34,12 +34,52 @@ import 'dart:math';
 class Vect {
   Vect(this.x, this.y);
 
-  factory Vect.fromAngle(double angle) => Vect(cos(angle), sin(angle));
+  factory Vect.fromAngle(num angle) => Vect(cos(angle * pi), sin(angle * pi));
 
   static Vect get zero => Vect(0, 0);
 
   double x;
   double y;
 
-  double get angle => atan2(x, y);
+  Vect get copy => Vect(this.x, this.y);
+
+  Vect operator +(covariant Vect other) {
+    return Vect(x + other.x, y + other.y);
+  }
+
+  Vect operator -(covariant Vect other) {
+    return Vect(x - other.x, y - other.y);
+  }
+
+  Vect operator *(dynamic other) {
+    if (other is int || other is double) {
+      return Vect(x * other, y * other);
+    }
+    if (other is! Vect) throw Exception('Unsupported operator /');
+    return Vect(x * other.x, y * other.y);
+  }
+
+  Vect operator /(dynamic other) {
+    if (other is int || other is double) {
+      return Vect(x / other, y / other);
+    }
+    if (other is! Vect) throw Exception('Unsupported operator /');
+    return Vect(x / other.x, y / other.y);
+  }
+
+  double distance(Vect other) {
+    final dy = y - other.y;
+    final dx = x - other.x;
+    return sqrt(dx * dx + dy * dy);
+  }
+
+  double angle(Vect other) {
+    final dy = y - other.y;
+    final dx = x - other.x;
+    return atan2(dy, dx);
+  }
+
+  Vect vector(Vect other) => Vect(x - other.x, y - other.y);
+
+  Vect center(Vect other) => (this + other) / 2;
 }

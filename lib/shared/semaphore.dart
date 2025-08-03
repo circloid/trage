@@ -29,4 +29,57 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-enum EntityState { created, active, disabled, disposed }
+import 'dart:async';
+import 'dart:collection';
+import 'dart:math';
+
+/// A counting semaphore for controlling access to a resource pool.
+///
+/// This semaphore implementation allows up to [permits] concurrent operations
+/// to proceed while queuing additional requests in FIFO order.
+class Semaphore {
+  Semaphore([this._permits = 1]) : _available = _permits {
+    if (_permits < 0) {
+      throw ArgumentError.value(_permits, 'permits', 'Must be non-negative');
+    }
+  }
+  final int _permits;
+  final Queue<Completer<void>> _waitQueue = Queue();
+
+  int _available;
+  bool _disposed = false;
+
+  Future<void> acquire() async {
+    if (_disposed) throw StateError('Semaphore has been disposed');
+
+    if (_available > 0) {
+      _available--;
+      return;
+    }
+
+    final completer = Completer<void>();
+    _waitQueue.add(completer);
+    return completer.future;
+  }
+
+  Future<void> lock() => acquire();
+
+  void release() {
+    if (_disposed) return;
+
+    if (_waitQueue.isNotEmpty) {
+      _waitQueue.removeFirst().complete();
+    } else {
+      _available = min(_available + 1, _permits);
+    }
+  }
+
+  void dispose() {
+    _disposed = true;
+    while (_waitQueue.isNotEmpty) {
+      _waitQueue.removeFirst().completeError(
+        StateError('Semaphore disposed while waiting'),
+      );
+    }
+  }
+}

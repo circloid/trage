@@ -51,7 +51,7 @@ class Network {
 
   static Future<Network> bind(String address, int port) async {
     final host = InternetAddress(address);
-    final socket = await RawDatagramSocket.bind(host, port);
+    final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
     final net = Network(socket, host, port);
     socket.listen(net._listenRawSocket);
     return net;
@@ -71,6 +71,10 @@ class Network {
     for (final listener in _listeners.values) {
       listener.callback(message);
     }
+  }
+
+  void send(String message) {
+    socket.send(message.codeUnits, host, port);
   }
 
   void listen(NetworkListenerCallback callback, [Object? watcher]) {

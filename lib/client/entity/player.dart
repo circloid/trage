@@ -29,30 +29,42 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'package:trage/client/game_state.dart';
+import 'package:trage/client/renderer.dart';
 import 'package:trage/shared/models/entity/entity.dart';
-import 'package:trage/shared/models/entity/entity_state.dart';
+import 'package:trage/shared/shapes/rect.dart';
+import 'package:trage/shared/shapes/vect.dart';
 
-class Entities {
-  Entities();
+class Player extends Entity {
+  Player(super.position);
+  int direction = 0;
+  static final _chars = ['⇒', '⇓', '⇐', '⇑'];
 
-  /// It represents the entire objects that should be rendered in the canvas
-  final Map<Object, Entity> _entities = {};
-  final List<Object> _sortedEntities = [];
+  @override
+  void onInit(Renderer renderer) {
+    super.onInit(renderer);
+    final movements = {'d': 0, 'w': -1 / 2, 'a': 1, 's': 1 / 2};
 
-  void put(Entity e, [Object? id]) {
-    id ??= Object();
-    e.onInit();
-    e.transition(EntityState.active);
-
-    if (_entities.containsKey(id)) return;
-
-    _entities[id] = e;
-    _insertSortedKey();
+    for (final MapEntry(:key, :value) in movements.entries) {
+      renderer.registerKeyMap(key, () => _move(value));
+    }
+    renderer.registerRawKey((buf) {});
   }
 
-  void del(Object o) {}
+  void _move(num angle) {
+    direction = (angle * 2).floor();
+    if (direction < 0) direction = direction + 4;
+    direction %= 4;
+    position += Vect.fromAngle(angle);
+  }
 
-  void _insertSortedKey() {}
+  void draw(GameState state) {
+    final r = new Rect(position, 5, 3);
+    final ui = state.ui;
+    ui.rectangle(r, ui.style.primary);
+    ui.move(r.center - Vect(1, 1));
+    ui.out(_chars[direction]);
+  }
 
-  // void _removeSortedKey() {}
+  void update() {}
 }

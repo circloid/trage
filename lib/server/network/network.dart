@@ -29,7 +29,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:trage/server/network/client_connection.dart';
 
 class Network {
   Network({required this.socket, required this.host, required this.port});
@@ -44,6 +48,42 @@ class Network {
   final InternetAddress host;
   final RawDatagramSocket socket;
   final int port;
+  Timer? _timer;
 
-  Future<void> _listenSocketDatagram(RawSocketEvent? e) async {}
+  void heartbeat(int fps) {
+    final delta = Duration(milliseconds: (1000 / fps).round());
+    _timer = Timer.periodic(delta, (_) {
+      _checkChanges();
+      _publishChanges();
+    });
+  }
+
+  void death() => _timer?.cancel();
+
+  void _checkChanges() {}
+  void _publishChanges() {}
+
+  void send(Uint8List buffer, ClientConnection client) {
+    print('PUB:' + String.fromCharCodes(buffer));
+    socket.send(buffer, client.addr, client.port);
+  }
+
+  Future<void> _listenSocketDatagram(RawSocketEvent? e) async {
+    switch (e) {
+      case RawSocketEvent.read:
+        final datagram = socket.receive();
+        if (datagram == null) break;
+        print('REC:' + String.fromCharCodes(datagram.data));
+        send(datagram.data, ClientConnection(datagram.address, datagram.port));
+        break;
+      case RawSocketEvent.write:
+        break;
+      case RawSocketEvent.readClosed:
+        break;
+      case RawSocketEvent.closed:
+        break;
+      default:
+        break;
+    }
+  }
 }

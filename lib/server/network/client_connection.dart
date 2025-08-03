@@ -28,4 +28,10 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-class ClientConnection {}
+import 'dart:io';
+
+class ClientConnection {
+  ClientConnection(this.addr, this.port);
+  final InternetAddress addr;
+  final int port;
+}

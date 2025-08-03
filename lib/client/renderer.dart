@@ -29,22 +29,108 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/client/cursor.dart';
-import 'package:trage/shared/vect.dart';
+import 'dart:io';
+
+import 'package:trage/client/game_state.dart';
+import 'package:trage/client/keymap.dart';
+import 'package:trage/shared/models/entity/entity.dart';
+import 'package:trage/shared/models/entity/entity_state.dart';
 
 class Renderer {
-  void print(String value, [Gesso? g]) {
-    g ??= Gesso();
-    g(value);
+  /// It represents the entire objects that should be rendered in the canvas
+  final Set<Entity> _entities = {};
+  final List<Entity> _sortedEntities = [];
+  final List<KeymapListener> _keymaps = [];
+  final List<RawkeyListener> _rawkeyListener = [];
+
+  void setup() {
+    stdin.lineMode = false;
+    stdin.echoMode = false;
+    stdin.listen(_onKeyboardInput);
   }
 
-  void horizontal(Vect vect, int length) {
-    cursor.move(vect);
-    for (int i = 0; i < length; i++) {
-      cursor.puts();
+  void put(Entity e) {
+    e.onInit(this);
+    e.transition(EntityState.active);
+
+    if (_entities.contains(e)) return;
+
+    _insertSortedKey(e);
+  }
+
+  T? get<T extends Entity>() {
+    for (final e in _entities) {
+      if (e is T) return e;
+    }
+    return null;
+  }
+
+  bool contains<T extends Entity>() => get<T>() != null;
+
+  void render(GameState state) {
+    for (final entity in _sortedEntities) {
+      entity.draw(state);
+      entity.update();
     }
   }
 
-  void vertical(Vect vect, int length) {}
+  bool del(Entity entity) {
+    final removed = _entities.remove(entity);
+    if (!removed) return false;
+    _removeEntity(entity);
+    return true;
+  }
+
+  Future<void> _insertSortedKey(Entity e) async {
+    int index = 0;
+
+    _entities.add(e);
+
+    for (; index < _sortedEntities.length; index++) {
+      if (_entities.elementAt(index).priority >= e.priority) break;
+    }
+    _sortedEntities.insert(index, e);
+  }
+
+  Future<void> _removeEntity(Entity entity) async {
+    final removed = _entities.remove(entity);
+    if (removed) {
+      entity.dispose();
+    }
+    _sortedEntities.remove(entity);
+  }
+
+  void registerKeyMap(String char, KeymapCallback on) {
+    if (char.length != 1) {
+      throw Exception('\'$char\' must be contains only 1 character');
+    }
+    newKeyMap(char.codeUnits, on);
+  }
+
+  void newKeyMap(List<int> key, KeymapCallback on) {
+    _keymaps.add(KeymapListener(key, on));
+  }
+
+  void registerRawKey(RawkeyListener listener) => _rawkeyListener.add(listener);
+
+  Future<void> _onKeyboardInput(List<int> buffer) async {
+    // await _lock.acquire();
+    try {
+      buffer = List.unmodifiable(buffer);
+      for (final raw in _rawkeyListener) {
+        raw(buffer);
+      }
+      for (final keymap in _keymaps) {
+        if (!keymap.equals(buffer)) continue;
+        keymap.on();
+      }
+    } finally {}
+  }
+
+  void dispose() {
+    _rawkeyListener.clear();
+    _keymaps.clear();
+    _entities.clear();
+    _sortedEntities.clear();
+  }
 }

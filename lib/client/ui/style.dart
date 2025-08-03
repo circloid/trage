@@ -43,15 +43,24 @@ class Style {
     required this.border,
   });
 
-  // static Style default = Style(
-  //   primary: Gesso(),
-  //   secondary: Gesso(),
-  //   success: Gesso(),
-  //   info: Gesso(),
-  //   warning: Gesso(),
-  //   error: Gesso(),
-  //   border: Border(horizontal: )
-  // );
+  static Style bold = Style(
+    primary: Gesso().brightMagenta,
+    secondary: Gesso().magenta,
+    success: Gesso().green,
+    info: Gesso().blue,
+    warning: Gesso().yellow,
+    error: Gesso().red,
+    border: Border.bold,
+  );
+  static Style thin = Style(
+    primary: Gesso().brightMagenta,
+    secondary: Gesso().magenta,
+    success: Gesso().green,
+    info: Gesso().blue,
+    warning: Gesso().yellow,
+    error: Gesso().red,
+    border: Border.thin,
+  );
 
   final Border border;
 

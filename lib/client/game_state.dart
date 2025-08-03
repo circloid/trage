@@ -29,14 +29,47 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'dart:async';
+
+import 'package:trage/client/entity/player.dart';
 import 'package:trage/client/network/network.dart';
-import 'package:trage/client/ui/style.dart';
-import 'package:trage/shared/models/entity/entity.dart';
+import 'package:trage/client/renderer.dart';
+import 'package:trage/client/ui/dartboard.dart';
+import 'package:trage/shared/semaphore.dart';
+
+import 'package:trage/shared/shapes/vect.dart';
 
 class GameState {
-  GameState(this.net, this.player, this.style);
+  GameState(this.net, this.ui, [this.fps = 100]);
 
-  final Style style;
+  final int fps;
+  final Dartboard ui;
   final Network net;
-  final Entity player;
+  final Renderer renderer = Renderer();
+
+  final Semaphore _lock = Semaphore();
+
+  Player? get player => renderer.get<Player>();
+
+  void setup() {
+    ui.hide();
+    ui.clear();
+    renderer.setup();
+    renderer.put(new Player(Vect(2, 2)));
+  }
+
+  void loop() {
+    final r = ui.rect.copy;
+    r.vect += Vect(1, 1);
+    ui.rectangle(r);
+
+    Timer.periodic(Duration(milliseconds: (1000 / fps).round()), _internalLoop);
+  }
+
+  Future<void> _internalLoop(Timer t) async {
+    await _lock.acquire();
+    ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 1);
+    renderer.render(this);
+    _lock.release();
+  }
 }

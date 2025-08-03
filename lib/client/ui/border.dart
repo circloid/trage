@@ -29,6 +29,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'package:gesso/gesso.dart';
+
 class Border {
   const Border({
     required this.horizontal,
@@ -38,10 +40,39 @@ class Border {
     required this.bottomLeft,
     required this.bottomRight,
   });
+
+  static final Border thin = const Border(
+    horizontal: '─',
+    vertical: '│',
+    topLeft: '┌',
+    topRight: '┐',
+    bottomLeft: '└',
+    bottomRight: '┘',
+  );
+  static final Border bold = const Border(
+    horizontal: '═',
+    vertical: '║',
+    topLeft: '╔',
+    topRight: '╗',
+    bottomLeft: '╚',
+    bottomRight: '╝',
+  );
+
   final String horizontal;
   final String vertical;
   final String topLeft;
   final String topRight;
   final String bottomLeft;
   final String bottomRight;
+
+  Border wrap(Gesso g) {
+    return new Border(
+      horizontal: g(horizontal),
+      vertical: g(vertical),
+      topLeft: g(topLeft),
+      topRight: g(topRight),
+      bottomLeft: g(bottomLeft),
+      bottomRight: g(bottomRight),
+    );
+  }
 }

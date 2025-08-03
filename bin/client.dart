@@ -40,19 +40,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //    ░██          ░████ ░██       ░█████░██  ░█████░██  ░███████
 //                                                  ░██
 //                                            ░███████
-//
-//
-import 'package:trage/client/cursor.dart';
 import 'package:trage/client/game_state.dart';
 import 'package:trage/client/network/network.dart';
-import 'package:trage/shared/models/player.dart';
-import 'package:trage/shared/vect.dart';
+import 'package:trage/client/ui/dartboard.dart';
+import 'package:trage/client/ui/style.dart';
 
-Future<void> main() async {
-  final net = await Network.bind('127.0.0.1', 4545);
-  final player = Player(Vect.zero);
-  final state = GameState(net, player);
+void main() async {
+  final net = await Network.bind('127.0.0.1', 8888);
+  final d = new Dartboard(Style.thin);
+  final state = GameState(net, d);
 
-  final c = Cursor(Vect.zero);
-  c.clear();
+  state.setup();
+
+  state.loop();
 }

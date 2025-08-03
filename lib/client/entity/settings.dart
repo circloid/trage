@@ -29,24 +29,20 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:gesso/gesso.dart';
+import 'package:trage/client/game_state.dart';
+import 'package:trage/client/renderer.dart';
+import 'package:trage/shared/models/entity/entity.dart';
 
-class Style {
-  Style({
-    required this.primary,
-    required this.secondary,
-    required this.success,
-    required this.info,
-    required this.warning,
-    required this.error,
-  });
+class Settings extends Entity {
+  Settings(super.position);
 
-  final Gesso primary;
-  final Gesso secondary;
+  @override
+  void onInit(Renderer renderer) {
+    super.onInit(renderer);
+    renderer.registerKeyMap(';', () {});
+  }
 
-  final Gesso success;
-  final Gesso info;
-  final Gesso warning;
-  final Gesso error;
+  void draw(GameState state) {}
+
+  void update() {}
 }
-

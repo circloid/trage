@@ -29,8 +29,10 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'package:trage/client/game_state.dart';
+import 'package:trage/client/renderer.dart';
 import 'package:trage/shared/models/entity/entity_state.dart';
-import 'package:trage/shared/vect.dart';
+import 'package:trage/shared/shapes/vect.dart';
 
 abstract class Entity {
   Entity(this.position, {this.priority = 1}) : id = Object();
@@ -41,30 +43,40 @@ abstract class Entity {
 
   EntityState _state = EntityState.created;
 
-  bool _disposed = false;
-
   final int priority;
 
   EntityState get state => _state;
 
   void init() {}
 
-  void onInit() {
-    if (_disposed) throw Exception('Bad state: entity already disposed');
+  void death(Renderer renderer) => renderer.del(this);
+
+  /// This will be called at the start when it has been added to the [Renderer].
+  ///
+  /// If this entity was disposed it throws an [Exception].
+  /// You can override this to initialize the entity before redered
+  void onInit(Renderer renderer) {
+    if (_state == EntityState.disposed) {
+      throw Exception('Bad state: entity already disposed');
+    }
   }
 
   /// Call [dispose] when you want to remove it from the entities.
   ///
   /// After you call this the entity became useless and you can't call any other method
   /// You MUST call it once
-  void dispose() {
-    if (_disposed) return;
-    _disposed = true;
+  Future<void> dispose() async {
+    if (_state == EntityState.disposed) return;
+    await transition(EntityState.disposed);
   }
 
   /// Methods used to change the state of the entity
   /// By default the state is [EntityState.created]
-  void transition(EntityState newState) {
+  Future<void> transition(EntityState newState) async {
     _state = newState;
   }
+
+  void draw(GameState state);
+
+  void update();
 }

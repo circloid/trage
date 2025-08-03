@@ -29,4 +29,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-enum EntityState { created, active, disabled, disposed }
+class Context {
+  final Map<Type, Object> _instances = {};
+
+  void put<T extends Object>(T instance) {}
+}

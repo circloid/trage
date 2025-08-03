@@ -29,4 +29,27 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-enum EntityState { created, active, disabled, disposed }
+import 'package:trage/shared/shapes/vect.dart';
+
+class Rect {
+  Rect(this.vect, this.width, this.height);
+  Vect vect;
+  double width;
+  double height;
+
+  Rect get copy => Rect(vect.copy, width, height);
+
+  Vect get topLeft => vect;
+  Vect get topRight => vect + Vect(width - 1, 0);
+  Vect get bottomLeft => vect + Vect(0, height - 1);
+  Vect get bottomRight => vect + Vect(width - 1, height - 1);
+
+  Vect get center => vect.center(vect + Vect(width, height));
+
+  double get diagonal => topLeft.distance(bottomRight);
+
+  Vect getCenterInside(Rect rect) {
+    final angle = rect.center.angle(rect.topLeft);
+    return center + Vect.fromAngle(angle) * (rect.diagonal / 2);
+  }
+}

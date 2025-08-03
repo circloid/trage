@@ -31,39 +31,68 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import 'dart:io';
 
-import 'package:gesso/gesso.dart';
-import 'package:trage/shared/vect.dart';
+import 'package:trage/shared/semaphore.dart';
 
-final cursor = Cursor._instance;
+typedef KeymapCallback = void Function();
+typedef RawkeyListener = void Function(List<int>);
 
-class Cursor {
-  Cursor._internal(this.vect);
+class KeymapListener {
+  KeymapListener(this.key, this.on);
 
-  static final Cursor _instance = Cursor._internal(Vect.zero);
+  final List<int> key;
+  final KeymapCallback on;
 
-  static const String _esc = '\x1B';
+  bool equals(List<int> buffer) {
+    if (buffer.length != key.length) return false;
 
-  Vect vect;
+    for (int i = 0; i < key.length; i++) {
+      if (key[i] != buffer[i]) return false;
+    }
 
-  /// Setup the terminal for receive non blocking input
-  /// You need this because the classic input block all program.
+    return true;
+  }
+}
+
+enum KeymapMode { listening, setting, disposed, disabled }
+
+/// The approach of setup: use a completer and a method map that should return the key pressed
+/// the method set the mode to setting and wait the incoming buffer
+class Keymap {
+  Keymap();
+
+  KeymapMode mode = KeymapMode.listening;
+
+  final Semaphore _lock = Semaphore();
+
   void setup() {
     stdin.echoMode = false;
     stdin.lineMode = false;
+    stdin.listen(_listen);
   }
 
-  void move(Vect v) {
-    vect = v;
-    stdout.write('$_esc[${vect.y.round()};${vect.x.round()}H');
+  void _setup(List<int> buffer) {}
+  void _listening(List<int> buffer) {}
+
+  Future<void> _listen(List<int> buffer) async {
+    await _lock.acquire();
+    switch (mode) {
+      case KeymapMode.listening:
+        _listening(buffer);
+        break;
+      case KeymapMode.setting:
+        _setup(buffer);
+        break;
+      default:
+        break;
+    }
+    _lock.release();
   }
 
-  void clear() => stdout.write('$_esc[2J');
-
-  void puts(String text, [Gesso? style]) {
-    style ??= Gesso();
-    text = style(text);
-    print(text);
-    vect.y++;
-    move(vect);
+  Future<KeymapMode> transit(KeymapMode newMode) async {
+    await _lock.acquire();
+    final old = mode;
+    mode = newMode;
+    _lock.release();
+    return old;
   }
 }
