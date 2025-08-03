@@ -28,3 +28,26 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+import 'package:trage/server/player.dart';
+import 'package:trage/shared/packet.dart';
+
+class Room {
+  Room(this.id);
+  final String id;
+  final Map<String, Player> _clients = {};
+
+  bool isValidClient(String uid) => _clients.containsKey(uid);
+
+  bool canStart() => _clients.length > 0;
+
+  void start() {}
+
+  bool partecipate(String uid) => _clients.containsKey(uid);
+
+  void updatePlayerPosition(String uid, int direction) {
+    if (!partecipate(uid)) return;
+    final player = _clients[uid]!;
+    player.move(direction);
+  }
+}

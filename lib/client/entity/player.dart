@@ -30,8 +30,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'package:trage/client/game_state.dart';
+import 'package:trage/client/network/network.dart';
 import 'package:trage/client/renderer.dart';
 import 'package:trage/shared/models/entity/entity.dart';
+import 'package:trage/shared/packet.dart';
+import 'package:trage/shared/services.dart';
 import 'package:trage/shared/shapes/rect.dart';
 import 'package:trage/shared/shapes/vect.dart';
 
@@ -52,10 +55,12 @@ class Player extends Entity {
   }
 
   void _move(num angle) {
+    // final net = global.get<Network>();
     direction = (angle * 2).floor();
     if (direction < 0) direction = direction + 4;
     direction %= 4;
     position += Vect.fromAngle(angle);
+    _sendMovement();
   }
 
   void draw(GameState state) {
@@ -67,4 +72,10 @@ class Player extends Entity {
   }
 
   void update() {}
+
+  void _sendMovement() {
+    final net = global.get<Network>();
+    final p = Packet(Command.move, body: direction.toString());
+    net.send(p);
+  }
 }

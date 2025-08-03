@@ -31,7 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import 'dart:io';
 
-typedef NetworkListenerCallback = void Function(String);
+import 'package:trage/shared/packet.dart';
+
+typedef NetworkListenerCallback = void Function(Packet);
 
 class NetworkListener {
   NetworkListener(this.callback, [this.id = const Object()]);
@@ -66,15 +68,20 @@ class Network {
   void _listenRawSocket(RawSocketEvent e) {
     final Datagram? d = socket.receive();
     if (d == null) return;
-    final String message = String.fromCharCodes(d.data).trim();
-
-    for (final listener in _listeners.values) {
-      listener.callback(message);
+    try {
+      final p = Packet.deserialize(d.data);
+      for (final listener in _listeners.values) {
+        listener.callback(p);
+      }
+    } catch (e, stack) {
+      print(e);
+      print(stack);
+      exit(1);
     }
   }
 
-  void send(String message) {
-    socket.send(message.codeUnits, host, port);
+  void send(Packet packet) {
+    socket.send(packet.serialize(), host, port);
   }
 
   void listen(NetworkListenerCallback callback, [Object? watcher]) {

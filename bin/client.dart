@@ -40,17 +40,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //    ░██          ░████ ░██       ░█████░██  ░█████░██  ░███████
 //                                                  ░██
 //                                            ░███████
+
 import 'package:trage/client/game_state.dart';
 import 'package:trage/client/network/network.dart';
+import 'package:trage/client/renderer.dart';
 import 'package:trage/client/ui/dartboard.dart';
 import 'package:trage/client/ui/style.dart';
+import 'package:trage/shared/services.dart';
 
-void main() async {
-  final net = await Network.bind('127.0.0.1', 8888);
+Future<void> main(List<String> args) async {
+  final String addr = args.isEmpty ? '127.0.0.1' : args[0];
   final d = new Dartboard(Style.thin);
-  final state = GameState(net, d);
-
+  final state = GameState(d);
+  final renderer = Renderer();
+  global.put(renderer);
   state.setup();
+
+  final net = await Network.bind(addr, 8888);
+
+  global.put(state);
+  global.put(net);
 
   state.loop();
 }

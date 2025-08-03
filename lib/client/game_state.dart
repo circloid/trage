@@ -30,30 +30,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:trage/client/entity/player.dart';
-import 'package:trage/client/network/network.dart';
 import 'package:trage/client/renderer.dart';
 import 'package:trage/client/ui/dartboard.dart';
+import 'package:trage/shared/packet.dart';
 import 'package:trage/shared/semaphore.dart';
+import 'package:trage/shared/services.dart';
 
 import 'package:trage/shared/shapes/vect.dart';
 
 class GameState {
-  GameState(this.net, this.ui, [this.fps = 100]);
+  GameState(this.ui, [this.fps = 100]);
 
   final int fps;
   final Dartboard ui;
-  final Network net;
-  final Renderer renderer = Renderer();
 
   final Semaphore _lock = Semaphore();
 
-  Player? get player => renderer.get<Player>();
+  String get uid => identityHashCode(this).toString();
+  Player? get player => global.get<Renderer>().get<Player>();
 
   void setup() {
+    print('Insert your username: ');
+    Packet.defaultHeader['uid'] = stdin.readLineSync() ?? '';
+
     ui.hide();
     ui.clear();
+    final renderer = global.get<Renderer>();
     renderer.setup();
     renderer.put(new Player(Vect(2, 2)));
   }
@@ -63,10 +68,15 @@ class GameState {
     r.vect += Vect(1, 1);
     ui.rectangle(r);
 
-    Timer.periodic(Duration(milliseconds: (1000 / fps).round()), _internalLoop);
+    final renderer = global.get<Renderer>();
+
+    Timer.periodic(
+      Duration(milliseconds: (1000 / fps).round()),
+      (_) => _internalLoop(renderer),
+    );
   }
 
-  Future<void> _internalLoop(Timer t) async {
+  Future<void> _internalLoop(Renderer renderer) async {
     await _lock.acquire();
     ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 1);
     renderer.render(this);

@@ -29,8 +29,19 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-class Context {
+final global = GlobalContext();
+
+class GlobalContext {
   final Map<Type, Object> _instances = {};
 
-  void put<T extends Object>(T instance) {}
+  void put<T extends Object>(T instance) {
+    _instances[T] = instance;
+  }
+
+  T get<T extends Object>() {
+    return _instances[T]! as T;
+  }
+
+  bool contains<T extends Object>() => _instances.containsKey(T);
+  void clear() => _instances.clear();
 }

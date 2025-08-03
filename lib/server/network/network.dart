@@ -31,9 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:trage/server/game_room.dart';
 import 'package:trage/server/network/client_connection.dart';
+import 'package:trage/shared/packet.dart';
 
 class Network {
   Network({required this.socket, required this.host, required this.port});
@@ -47,12 +48,14 @@ class Network {
 
   final InternetAddress host;
   final RawDatagramSocket socket;
+  final Map<String, ClientConnection> _clients = {};
+  final Map<String, Room> _rooms = {};
   final int port;
   Timer? _timer;
 
   void heartbeat(int fps) {
     final delta = Duration(milliseconds: (1000 / fps).round());
-    _timer = Timer.periodic(delta, (_) {
+    _timer = Timer.periodic(delta, (_) async {
       _checkChanges();
       _publishChanges();
     });
@@ -63,9 +66,16 @@ class Network {
   void _checkChanges() {}
   void _publishChanges() {}
 
-  void send(Uint8List buffer, ClientConnection client) {
-    print('PUB:' + String.fromCharCodes(buffer));
-    socket.send(buffer, client.addr, client.port);
+  void send(Packet p, ClientConnection client) {
+    socket.send(p.serialize(), client.addr, client.port);
+  }
+
+  ClientConnection _createClientIfAbsent(Datagram datagram) {
+    final id = '${datagram.address.address}:${datagram.port}';
+    if (!_clients.containsKey(id)) {
+      _clients[id] = ClientConnection(datagram.address, datagram.port);
+    }
+    return _clients[id]!;
   }
 
   Future<void> _listenSocketDatagram(RawSocketEvent? e) async {
@@ -73,8 +83,10 @@ class Network {
       case RawSocketEvent.read:
         final datagram = socket.receive();
         if (datagram == null) break;
-        print('REC:' + String.fromCharCodes(datagram.data));
-        send(datagram.data, ClientConnection(datagram.address, datagram.port));
+        final client = _createClientIfAbsent(datagram);
+        final p = Packet.deserialize(datagram.data);
+
+        await _handleRequest(client, p);
         break;
       case RawSocketEvent.write:
         break;
@@ -85,5 +97,38 @@ class Network {
       default:
         break;
     }
+  }
+
+  Future<void> _handleRequest(ClientConnection sender, Packet packet) async {
+    switch (packet.cmd) {
+      case Command.join:
+        // Search rooms to join or create a new
+
+        break;
+      case Command.move:
+        if (!_checkParamsPacket(packet, ['room', 'uid'])) break;
+        if (packet.body.length != 1) break;
+
+        final roomId = packet.header['room']!;
+        final uid = packet.header['uid']!;
+
+        if (!_rooms.containsKey(roomId)) break;
+        final room = _rooms[roomId]!;
+
+        if (!room.isValidClient(uid)) break;
+        final dir = packet.body.codeUnitAt(0);
+        room.updatePlayerPosition(uid, dir);
+        // update the client position
+        break;
+      default:
+        break;
+    }
+  }
+
+  bool _checkParamsPacket(Packet p, List<String> requiredHeaderKeys) {
+    for (final key in requiredHeaderKeys) {
+      if (!p.header.containsKey(key)) return false;
+    }
+    return true;
   }
 }
