@@ -87,7 +87,7 @@ class GameState {
     net.send(p);
   }
 
-  void join(String room) {}
+  void join() {}
   void create() {}
 
   Future<void> menu() async {
