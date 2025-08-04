@@ -30,12 +30,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:trage/client/entity/player.dart';
 import 'package:trage/client/renderer.dart';
 import 'package:trage/client/ui/dartboard.dart';
-import 'package:trage/shared/packet.dart';
 import 'package:trage/shared/semaphore.dart';
 import 'package:trage/shared/services.dart';
 
@@ -54,7 +52,6 @@ class GameState {
 
   void setup() {
     print('Insert your username: ');
-    Packet.defaultHeader['uid'] = stdin.readLineSync() ?? '';
 
     ui.hide();
     ui.clear();

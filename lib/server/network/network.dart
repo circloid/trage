@@ -99,36 +99,5 @@ class Network {
     }
   }
 
-  Future<void> _handleRequest(ClientConnection sender, Packet packet) async {
-    switch (packet.cmd) {
-      case Command.join:
-        // Search rooms to join or create a new
-
-        break;
-      case Command.move:
-        if (!_checkParamsPacket(packet, ['room', 'uid'])) break;
-        if (packet.body.length != 1) break;
-
-        final roomId = packet.header['room']!;
-        final uid = packet.header['uid']!;
-
-        if (!_rooms.containsKey(roomId)) break;
-        final room = _rooms[roomId]!;
-
-        if (!room.isValidClient(uid)) break;
-        final dir = packet.body.codeUnitAt(0);
-        room.updatePlayerPosition(uid, dir);
-        // update the client position
-        break;
-      default:
-        break;
-    }
-  }
-
-  bool _checkParamsPacket(Packet p, List<String> requiredHeaderKeys) {
-    for (final key in requiredHeaderKeys) {
-      if (!p.header.containsKey(key)) return false;
-    }
-    return true;
-  }
+  Future<void> _handleRequest(ClientConnection sender, Packet packet) async {}
 }

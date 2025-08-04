@@ -30,7 +30,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'package:trage/server/player.dart';
-import 'package:trage/shared/packet.dart';
 
 class Room {
   Room(this.id);

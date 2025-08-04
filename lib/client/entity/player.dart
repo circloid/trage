@@ -74,8 +74,8 @@ class Player extends Entity {
   void update() {}
 
   void _sendMovement() {
-    final net = global.get<Network>();
-    final p = Packet(Command.move, body: direction.toString());
-    net.send(p);
+    // final net = global.get<Network>();
+    // final p = Packet(Command.move, body: direction.toString());
+    // net.send(p);
   }
 }

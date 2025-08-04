@@ -29,17 +29,17 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:trage/shared/utils.dart';
-
-enum Command {
+/// PacketCommand is a 1 byte integer (256 combination) that is the first field of the UDP Packet
+enum PacketCommand {
+  // Player actions
   join(1),
   leave(2),
-  action(3),
-  move(4);
+  move(3),
+  shot(4);
 
-  const Command(this.value);
-  factory Command.deserialize(int value) {
-    for (final cmd in Command.values) {
+  const PacketCommand(this.value);
+  factory PacketCommand.deserialize(int value) {
+    for (final cmd in PacketCommand.values) {
       if (cmd.value == value) return cmd;
     }
     throw Exception('Command with code \'$value\' not found');
@@ -47,138 +47,89 @@ enum Command {
   final int value;
 }
 
-/// The packet is composed by
-/// +--------------------------------------------+
-/// CMD: 1 byte
-/// Header entries length: 1 byte
-/// Header raw length: 2 bytes
-/// Header entries: variable length
-/// Body length: 2 bytes
-/// Body: variable length
-/// Checksum: 4 bytes
-/// +--------------------------------------------+
-class Packet {
-  Packet(this.cmd, {this.body = '', this.header = const {}});
+enum PacketFlag {
+  compressed(0x1), // Body is compressed in base64
+  encrypted(0x2),
+  broadcast(0x4),
+  priorityze(0x8);
 
-  factory Packet.deserialize(List<int> buffer) {
-    if (buffer.length < 10) {
-      throw Exception('Invalid packet');
+  const PacketFlag(this.value);
+
+  final int value;
+
+  static int serialize(List<PacketFlag> flags) {
+    int res = 0;
+    for (final flag in flags) {
+      res |= flag.value;
     }
-    final cmd = Command.deserialize(buffer[0]);
-
-    final headerLen = (buffer[2] << 8) + buffer[3];
-    final header = _deserializeHeader(buffer);
-
-    final bodyIdx = 4 + headerLen;
-    final bodyLen = (buffer[bodyIdx] << 8) | buffer[bodyIdx + 1];
-    final body = buffer.sublist(bodyIdx + 2, bodyIdx + 2 + bodyLen);
-    // final crc = buffer.sublist(buffer.length - 4);
-    // print(crc.map((e) => e.toRadixString(16)));
-    // final packetCrc = (crc[0] << 24) | (crc[1] << 16) | (crc[2] << 8) | crc[3];
-    // final computedCrc = Utils().crc32(buffer.sublist(0, buffer.length - 4));
-    // if (packetCrc != computedCrc) {
-    //   throw Exception('Packet is corrupted, invalid CRC');
-    // }
-    return Packet(cmd, header: header, body: String.fromCharCodes(body));
+    return res;
   }
 
-  static const String _headerSeparator = ';';
-  static const String _headerAssignSeparator = ':';
-  static Map<String, String> defaultHeader = {};
-
-  static Map<String, String> _deserializeHeader(List<int> buffer) {
-    final entriesCount = buffer[1];
-    final rawLen = (buffer[2] << 8) | buffer[3];
-
-    if (entriesCount == 0) return {};
-
-    final headerData = String.fromCharCodes(buffer.sublist(4, 4 + rawLen));
-    final entries = headerData.split(_headerSeparator);
-
-    final result = <String, String>{};
-    for (final entry in entries) {
-      if (entry.isNotEmpty) {
-        final (key, value) = _deserializeHeaderEntry(entry);
-        result[key] = value;
+  static List<PacketFlag> deserialize(int buffer) {
+    final res = <PacketFlag>[];
+    final flags = [compressed, encrypted, broadcast, priorityze];
+    for (int i = 0; i < 8; i++) {
+      if (((buffer >> i) & 1) == 1) {
+        res.add(flags[i]);
       }
     }
-
-    return result;
+    return res;
   }
+}
 
-  static (String, String) _deserializeHeaderEntry(String str) {
-    final entry = str.split(_headerAssignSeparator);
-    if (entry.length < 2) {
-      throw Exception('Invalid header entry during deserialization');
+/// The packet is composed by
+/// +--------------------------------------------+
+/// CMD: 2 byte
+/// Flag: 1 byte
+/// Body length: 1 bytes
+/// Body: variable length
+/// +--------------------------------------------+
+class Packet {
+  Packet(this.cmd, {this.flags = const [], this.body = ''});
+
+  factory Packet.deserialize(List<int> buffer) {
+    if (buffer.length < 4) {
+      throw const PacketException(
+        'Invalid buffer length',
+        'It should be at least 4 bytes',
+      );
     }
-    return (entry[0], entry[1]);
+    final cmd = PacketCommand.deserialize(buffer[0]);
+    final flags = PacketFlag.deserialize(buffer[1]);
+    final body = String.fromCharCodes(buffer.sublist(4));
+
+    return Packet(cmd, flags: flags, body: body);
   }
 
-  final Command cmd;
-  final Map<String, String> header;
+  final PacketCommand cmd;
+  final List<PacketFlag> flags;
   final String body;
 
-  List<int> get serializedHeader {
-    final res = [header.length + defaultHeader.length];
-    final h = {...header, ...defaultHeader};
-    final List<String> newHeader = [];
-    for (final MapEntry(:key, :value) in h.entries) {
-      newHeader.add('$key$_headerAssignSeparator$value');
-    }
-    final serialized = newHeader.join(_headerSeparator);
-    final len = serialized.length;
-    res.add((len >> 8) & 0xFF);
-    res.add(len & 0xFF);
-    res.addAll(serialized.codeUnits);
-    return res;
-  }
-
-  List<int> get serializedBody {
-    final res = <int>[];
-    final len = body.length;
-    res.add((len >> 8) & 0xFF);
-    res.add(len & 0xFF);
-    res.addAll(body.codeUnits);
-    return res;
-  }
-
   List<int> serialize() {
-    final List<int> res = [];
-    res.add(cmd.value);
-    res.addAll(serializedHeader);
-    res.addAll(serializedBody);
+    final bytes = body.codeUnits.length;
+    if (bytes > 0xFF) {
+      throw const PacketException(
+        'Error during serialization',
+        'Body length oversized',
+      );
+    }
 
-    final crc = Utils().crc32(res);
-    res.add((crc >> 24) & 0xFF);
-    res.add((crc >> 16) & 0xFF);
-    res.add((crc >> 8) & 0xFF);
-    res.add(crc & 0xFF);
+    final int flag = PacketFlag.serialize(flags);
 
-    return res;
+    return [cmd.value, flag, bytes, ...body.codeUnits];
   }
+}
 
-  int crc32() {
-    final List<int> res = [];
-    res.add(cmd.value);
-    res.addAll(serializedHeader);
-    res.addAll(serializedBody);
-    return Utils().crc32(res);
-  }
+class PacketException implements Exception {
+  const PacketException(this.message, [this.cause]);
+  final String message;
+  final String? cause;
+
+  Map<String, String> get json => {
+    'message': message,
+    if (cause != null) 'cause': cause!,
+  };
 
   @override
-  String toString() {
-    final combinedHeader = {...defaultHeader, ...header};
-    final frames = [cmd.name];
-    frames.add(combinedHeader.length.toString());
-    frames.add(serializedHeader.length.toString());
-    frames.add(String.fromCharCodes(serializedHeader));
-    frames.add(serializedBody.length.toString());
-    frames.add(String.fromCharCodes(serializedBody));
-    frames.add(crc32().toString());
-    return '''
-+--PACKET--+
-${frames.join('|')}
-+----------+
-    ''';
-  }
+  String toString() => '''PacketException: $json''';
 }

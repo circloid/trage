@@ -51,7 +51,9 @@ import 'package:trage/shared/services.dart';
 Future<void> main(List<String> args) async {
   final String addr = args.isEmpty ? '127.0.0.1' : args[0];
   final d = new Dartboard(Style.thin);
+
   final state = GameState(d);
+
   final renderer = Renderer();
   global.put(renderer);
   state.setup();
