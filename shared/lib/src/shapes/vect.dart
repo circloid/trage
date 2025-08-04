@@ -36,6 +36,11 @@ class Vect {
 
   factory Vect.fromAngle(num angle) => Vect(cos(angle * pi), sin(angle * pi));
 
+  factory Vect.random() {
+    final r = Random();
+    return Vect(r.nextDouble(), r.nextDouble());
+  }
+
   static Vect get zero => Vect(0, 0);
 
   num x;

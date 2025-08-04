@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import 'dart:async';
 import 'dart:io';
 
-import 'package:server/game_room.dart';
-import 'package:server/network/client_connection.dart';
+import '../game_room.dart';
+import 'client_connection.dart';
 import 'package:shared/shared.dart';
 
 class Network {
@@ -88,16 +88,46 @@ class Network {
 
         await _handleRequest(client, p);
         break;
-      case RawSocketEvent.write:
+
+      default:
         break;
-      case RawSocketEvent.readClosed:
+    }
+  }
+
+  Future<void> _handleRequest(ClientConnection sender, Packet packet) async {
+    switch (packet.cmd) {
+      case PacketCommand.join:
+        joinRoom(sender, packet);
         break;
-      case RawSocketEvent.closed:
+      case PacketCommand.move:
+        movePlayer(sender, packet);
         break;
       default:
         break;
     }
   }
 
-  Future<void> _handleRequest(ClientConnection sender, Packet packet) async {}
+  Future<void> joinRoom(ClientConnection sender, Packet packet) async {
+    final roomId = packet.body;
+    if (!_rooms.containsKey(roomId)) {
+      _rooms[roomId] = Room(roomId);
+    }
+    final room = _rooms[roomId]!;
+    room.join(sender);
+  }
+
+  Future<void> movePlayer(ClientConnection sender, Packet packet) async {
+    final room = getRoomByClientId(sender);
+    if (room == null) return;
+    if (packet.body.length != 1) return;
+    final direction = packet.body.codeUnitAt(0);
+    room.updatePlayerPosition(sender.id, direction);
+  }
+
+  Room? getRoomByClientId(ClientConnection sender) {
+    for (final room in _rooms.values) {
+      if (room.partecipate(sender.id)) return room;
+    }
+    return null;
+  }
 }

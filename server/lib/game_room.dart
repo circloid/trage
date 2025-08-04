@@ -29,7 +29,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'package:server/network/client_connection.dart';
 import 'package:server/player_server.dart';
+import 'package:shared/shared.dart';
 
 class Room {
   Room(this.id);
@@ -43,6 +45,13 @@ class Room {
   void start() {}
 
   bool partecipate(String uid) => _clients.containsKey(uid);
+
+  PlayerServer join(ClientConnection conn) {
+    if (!_clients.containsKey(conn.id)) {
+      _clients[conn.id] = PlayerServer(Vect.random(), conn);
+    }
+    return _clients[conn.id]!;
+  }
 
   void updatePlayerPosition(String uid, int direction) {
     if (!partecipate(uid)) return;

@@ -34,4 +34,6 @@ class ClientConnection {
   ClientConnection(this.addr, this.port);
   final InternetAddress addr;
   final int port;
+
+  String get id => '${addr.address}:$port';
 }

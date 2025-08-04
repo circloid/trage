@@ -169,10 +169,12 @@ class Dartboard {
     });
     // enter
     final enter = r.newKeyMap([13], () => c.complete(active));
+    final enterUnix = r.newKeyMap([10], () => c.complete(active));
     final res = await c.future;
     r.removeKeyMap(arrUp);
     r.removeKeyMap(arrDown);
     r.removeKeyMap(enter);
+    r.removeKeyMap(enterUnix);
     return res;
   }
 }
