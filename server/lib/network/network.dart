@@ -32,9 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import 'dart:async';
 import 'dart:io';
 
+import 'package:shared/shared.dart';
+
 import '../game_room.dart';
 import 'client_connection.dart';
-import 'package:shared/shared.dart';
 
 class Network {
   Network({required this.socket, required this.host, required this.port});
@@ -52,6 +53,8 @@ class Network {
   final Map<String, Room> _rooms = {};
   final int port;
   Timer? _timer;
+
+  final List<Packet> _patches = [];
 
   void heartbeat(int fps) {
     final delta = Duration(milliseconds: (1000 / fps).round());
@@ -86,6 +89,9 @@ class Network {
         final client = _createClientIfAbsent(datagram);
         final p = Packet.deserialize(datagram.data);
 
+        print('Deserialized packet from ${client.id}');
+        print(p);
+
         await _handleRequest(client, p);
         break;
 
@@ -111,6 +117,7 @@ class Network {
     final roomId = packet.body;
     if (!_rooms.containsKey(roomId)) {
       _rooms[roomId] = Room(roomId);
+      print('Room: $roomId created');
     }
     final room = _rooms[roomId]!;
     room.join(sender);
@@ -118,8 +125,14 @@ class Network {
 
   Future<void> movePlayer(ClientConnection sender, Packet packet) async {
     final room = getRoomByClientId(sender);
-    if (room == null) return;
-    if (packet.body.length != 1) return;
+    if (room == null) {
+      print('Player ${sender.id} not found in any rooms');
+      return;
+    }
+    if (packet.body.length != 1) {
+      print('Missing direction in the packet');
+      return;
+    }
     final direction = packet.body.codeUnitAt(0);
     room.updatePlayerPosition(sender.id, direction);
   }

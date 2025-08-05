@@ -38,13 +38,24 @@ enum PacketCommand {
   shot(4);
 
   const PacketCommand(this.value);
-  factory PacketCommand.deserialize(int value) {
+  factory PacketCommand.deserialize(List<int> buffer) {
+    if (buffer.length != 2) {
+      throw PacketException(
+        'Invalid command length',
+        'It should be 2 bytes but given ${buffer.length}',
+      );
+    }
+    final value = (buffer[0] << 8) | buffer[1];
     for (final cmd in PacketCommand.values) {
       if (cmd.value == value) return cmd;
     }
     throw Exception('Command with code \'$value\' not found');
   }
   final int value;
+
+  List<int> serialize() {
+    return [value >> 8 % 256, value % 256];
+  }
 }
 
 enum PacketFlag {
@@ -89,13 +100,13 @@ class Packet {
 
   factory Packet.deserialize(List<int> buffer) {
     if (buffer.length < 4) {
-      throw const PacketException(
+      throw PacketException(
         'Invalid buffer length',
-        'It should be at least 4 bytes',
+        'It should be at least 4 bytes, given ${buffer.length}',
       );
     }
-    final cmd = PacketCommand.deserialize(buffer[0]);
-    final flags = PacketFlag.deserialize(buffer[1]);
+    final cmd = PacketCommand.deserialize(buffer.sublist(0, 2));
+    final flags = PacketFlag.deserialize(buffer[2]);
     final body = String.fromCharCodes(buffer.sublist(4));
 
     return Packet(cmd, flags: flags, body: body);
@@ -116,7 +127,17 @@ class Packet {
 
     final int flag = PacketFlag.serialize(flags);
 
-    return [cmd.value, flag, bytes, ...body.codeUnits];
+    return [...cmd.serialize(), flag, bytes, ...body.codeUnits];
+  }
+
+  @override
+  String toString() {
+    final lines = [];
+    lines.add('CMD      : ${cmd.name}');
+    lines.add('FLAGS    : ${flags.map((f) => f.name).join(',')}');
+    lines.add('BODY LEN : ${body.length}');
+    lines.add('BODY     : ${body}');
+    return lines.join('\n');
   }
 }
 

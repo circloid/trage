@@ -30,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'package:client/entity/entity.dart';
+import 'package:client/network/network.dart';
 import 'package:shared/shared.dart';
 
 import '../game_state.dart';
@@ -48,8 +49,10 @@ class PlayerClient extends Entity {
     for (final MapEntry(:key, :value) in movements.entries) {
       renderer.registerKeyMap(key, () => _move(value));
     }
-    renderer.registerRawKey((buf) {});
+    renderer.registerKeyMap(' ', fire);
   }
+
+  void fire() {}
 
   void _move(num angle) {
     // final net = global.get<Network>();
@@ -71,8 +74,8 @@ class PlayerClient extends Entity {
   void update() {}
 
   void _sendMovement() {
-    // final net = global.get<Network>();
-    // final p = Packet(Command.move, body: direction.toString());
-    // net.send(p);
+    final net = global.get<Network>();
+    final p = Packet(PacketCommand.move, body: direction.toString());
+    net.send(p);
   }
 }

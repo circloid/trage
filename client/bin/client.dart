@@ -50,7 +50,7 @@ import 'package:shared/shared.dart';
 
 Future<void> main(List<String> args) async {
   final String addr = args.isEmpty ? '127.0.0.1' : args[0];
-  final d = new Dartboard(Style.thin);
+  final d = Dartboard(Style.bold);
 
   final state = GameState(d);
 
@@ -58,6 +58,8 @@ Future<void> main(List<String> args) async {
   global.put(renderer);
 
   final net = await Network.bind(addr, 8888);
+
+  net.listen(renderer.onReceivePacket);
 
   global.put(state);
   global.put(net);

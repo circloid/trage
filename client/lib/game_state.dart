@@ -30,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'dart:async';
+import 'dart:math';
 // import 'dart:io';
 
 import 'package:client/network/network.dart';
@@ -52,13 +53,15 @@ class GameState {
 
   Future<void> setup() async {
     final renderer = global.get<Renderer>();
-    renderer.setup();
-    ui.clear();
-    await menu();
-    print('Insert your username: ');
 
+    renderer.setup();
+
+    ui.clear();
     ui.hide();
-    renderer.put(new PlayerClient(Vect(2, 2)));
+
+    await menu();
+
+    renderer.put(PlayerClient(Vect(2, 2)));
   }
 
   void loop() {
@@ -82,7 +85,8 @@ class GameState {
   }
 
   void quick() {
-    final p = Packet(PacketCommand.join);
+    final r = Random().nextInt(10000);
+    final p = Packet(PacketCommand.join, body: r.toString());
     final net = global.get<Network>();
     net.send(p);
   }

@@ -1,0 +1,3 @@
+mkdir out
+dart compile exe client/bin/client.dart -o out/trage
+dart compile exe server/bin/server.dart -o out/udp

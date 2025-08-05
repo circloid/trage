@@ -48,14 +48,19 @@ class Room {
 
   PlayerServer join(ClientConnection conn) {
     if (!_clients.containsKey(conn.id)) {
+      print('added to room $id player ${conn.id}');
       _clients[conn.id] = PlayerServer(Vect.random(), conn);
     }
     return _clients[conn.id]!;
   }
 
   void updatePlayerPosition(String uid, int direction) {
-    if (!partecipate(uid)) return;
+    if (!partecipate(uid)) {
+      print('Player $uid not found in the room $id');
+      return;
+    }
     final player = _clients[uid]!;
+
     player.move(direction);
   }
 }

@@ -34,6 +34,7 @@ import 'dart:io';
 
 import 'package:client/entity/entity.dart';
 import 'package:client/entity/entity_state.dart';
+import 'package:shared/shared.dart';
 
 import 'game_state.dart';
 import 'keymap.dart';
@@ -144,6 +145,8 @@ class Renderer {
       }
     } finally {}
   }
+
+  void onReceivePacket(Packet packet) {}
 
   void dispose() {
     _rawkeyListener.clear();

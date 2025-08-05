@@ -8,6 +8,7 @@ analyzer:
     missing_return: error
     unnecessary_null_checks: error
     unnecessary_this: error
+    unnecessary_new: error
     unnecessary_cast: error
     todo: error
     deprecated_member_use: error
@@ -49,5 +50,6 @@ linter:
     # unawaited_futures: true
     unnecessary_await_in_return: true
     unnecessary_lambdas: true
+    unnecessary_new: true
     use_super_parameters: true
     valid_regexps: true
