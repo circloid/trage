@@ -113,14 +113,36 @@ class Network {
     }
   }
 
-  Future<void> joinRoom(ClientConnection sender, Packet packet) async {
+  void joinRoom(ClientConnection sender, Packet packet) {
     final roomId = packet.body;
-    if (!_rooms.containsKey(roomId)) {
-      _rooms[roomId] = Room(roomId);
+    Room room;
+    if (roomId.isEmpty) {
+      room = quickJoin();
+    } else {
+      if (!_rooms.containsKey(roomId)) {
+        throw Exception('Room id not found. Try again...');
+      }
+      room = _rooms[roomId]!;
       print('Room: $roomId created');
     }
-    final room = _rooms[roomId]!;
     room.join(sender);
+  }
+
+  Room quickJoin() {
+    Room? freeRoom = firstFreeRoom();
+    if (freeRoom == null) {
+      freeRoom = Room.quick();
+      _rooms[freeRoom.id] = freeRoom;
+    }
+    return freeRoom;
+  }
+
+  Room? firstFreeRoom() {
+    Room? freeRoom = _rooms[0];
+    for (final room in _rooms.values) {
+      if (room.open && room.isFull) freeRoom = room;
+    }
+    return freeRoom;
   }
 
   Future<void> movePlayer(ClientConnection sender, Packet packet) async {

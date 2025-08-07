@@ -85,8 +85,7 @@ class GameState {
   }
 
   void quick() {
-    final r = Random().nextInt(10000);
-    final p = Packet(PacketCommand.join, body: r.toString());
+    final p = Packet(PacketCommand.join);
     final net = global.get<Network>();
     net.send(p);
   }

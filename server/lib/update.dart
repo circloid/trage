@@ -29,47 +29,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:server/network/client_connection.dart';
-import 'package:server/player_server.dart';
-import 'package:shared/shared.dart';
-
-class Room {
-  Room(this.id);
-  factory Room.quick() => Room(identityHashCode(Object()).toString());
-  static const int _maxPlayerCount = 8;
-  final String id;
-  bool open = false;
-  final Map<String, PlayerServer> clients = {};
-  final List<Update> updates = [];
-
-  bool isValidClient(String uid) => clients.containsKey(uid);
-
-  bool canStart() => clients.length > 0;
-
-  void start() {
-    open = true;
-    // send packets and stuff
-  }
-
-  bool partecipate(String uid) => clients.containsKey(uid);
-
-  PlayerServer join(ClientConnection conn) {
-    if (!clients.containsKey(conn.id)) {
-      print('added to room $id player ${conn.id}');
-      clients[conn.id] = PlayerServer(Vect.random(), conn);
-    }
-    return clients[conn.id]!;
-  }
-
-  bool get isFull => open && clients.length < _maxPlayerCount;
-
-  void updatePlayerPosition(String uid, int direction) {
-    if (!partecipate(uid)) {
-      print('Player $uid not found in the room $id');
-      return;
-    }
-    final player = clients[uid]!;
-
-    player.move(direction);
-  }
+class Update {
+  Update(this.entity, this.property, this.value);
+  final Entity entity;
+  final int property;
+  final String value;
 }
