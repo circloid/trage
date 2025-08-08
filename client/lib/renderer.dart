@@ -41,7 +41,7 @@ import 'keymap.dart';
 
 class Renderer {
   /// It represents the entire objects that should be rendered in the canvas
-  final Set<Entity> _entities = {};
+  final Map<int, Entity> _entities = {};
   final List<Entity> _sortedEntities = [];
   final Map<Object, KeymapListener> _keymaps = {};
   final List<RawkeyListener> _rawkeyListener = [];
@@ -53,22 +53,19 @@ class Renderer {
   }
 
   void put(Entity e) {
+    if (_entities.containsKey(e.id)) return;
+
+    _entities[e.id] = e;
+
     e.onInit(this);
     e.transition(EntityState.active);
-
-    if (_entities.contains(e)) return;
 
     _insertSortedKey(e);
   }
 
-  T? get<T extends Entity>() {
-    for (final e in _entities) {
-      if (e is T) return e;
-    }
-    return null;
-  }
+  bool contains(Entity e) => containsId(e.id);
 
-  bool contains<T extends Entity>() => get<T>() != null;
+  bool containsId(int id) => _entities.containsKey(id);
 
   void render(GameState state) {
     for (final entity in _sortedEntities) {
@@ -79,7 +76,7 @@ class Renderer {
 
   bool del(Entity entity) {
     final removed = _entities.remove(entity);
-    if (!removed) return false;
+    if (removed == null) return false;
     _removeEntity(entity);
     return true;
   }
@@ -87,17 +84,17 @@ class Renderer {
   Future<void> _insertSortedKey(Entity e) async {
     int index = 0;
 
-    _entities.add(e);
+    _entities[e.id] = e;
 
     for (; index < _sortedEntities.length; index++) {
-      if (_entities.elementAt(index).priority >= e.priority) break;
+      if (_sortedEntities[index].priority >= e.priority) break;
     }
     _sortedEntities.insert(index, e);
   }
 
   Future<void> _removeEntity(Entity entity) async {
-    final removed = _entities.remove(entity);
-    if (removed) {
+    final removed = _entities.remove(entity.id);
+    if (removed != null) {
       entity.dispose();
     }
     _sortedEntities.remove(entity);

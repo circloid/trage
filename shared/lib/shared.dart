@@ -4,7 +4,6 @@
 library;
 
 export './src/shapes/shapes.dart';
-export './src/models/models.dart';
 export './src/mutex.dart';
 export './src/semaphore.dart';
 export './src/packet.dart';

@@ -30,9 +30,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'dart:async';
-import 'dart:math';
-// import 'dart:io';
 
+import 'package:client/entity/enemy.dart';
 import 'package:client/network/network.dart';
 import 'package:shared/shared.dart';
 
@@ -45,14 +44,14 @@ class GameState {
 
   final int fps;
   final Dartboard ui;
-
   final Semaphore _lock = Semaphore();
+  late PlayerClient player;
+  late Renderer renderer;
 
   String get uid => identityHashCode(this).toString();
-  PlayerClient? get player => global.get<Renderer>().get<PlayerClient>();
 
   Future<void> setup() async {
-    final renderer = global.get<Renderer>();
+    renderer = global.get<Renderer>();
 
     renderer.setup();
 
@@ -61,15 +60,16 @@ class GameState {
 
     await menu();
 
-    renderer.put(PlayerClient(Vect(2, 2)));
+    global.get<Network>().listen(_incomingPacket);
+
+    player = PlayerClient(Vect(2, 2));
+    renderer.put(player);
   }
 
   void loop() {
     final r = ui.rect.copy;
     r.vect += Vect(1, 1);
-    ui.rectangle(r);
-
-    final renderer = global.get<Renderer>();
+    // ui.rectangle(r);
 
     Timer.periodic(
       Duration(milliseconds: (1000 / fps).round()),
@@ -77,9 +77,49 @@ class GameState {
     );
   }
 
+  void _incomingPacket(Packet p) {
+    ui.move(ui.rect.bottomLeft - Vect(-2, 10));
+    ui.out(p.body);
+    switch (p.cmd) {
+      case PacketCommand.tick:
+        _handleServerTick(p.body);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _handleServerTick(String body) {
+    // print(body);
+    final entities = body.split(';');
+    for (final entity in entities) {
+      print(entity);
+      _handleEntityUpdate(entity);
+    }
+  }
+
+  void _handleEntityUpdate(String entity) {
+    // print('Dai entity $entity');
+    final id = toInt(entity.substring(0, 2).codeUnits);
+    final pos = entity.substring(3);
+    if (!renderer.containsId(id)) {
+      final e = Enemy(Vect.deserialize(pos));
+      e.id = id;
+      renderer.put(e);
+    }
+  }
+
+  int toInt(List<int> bytes) {
+    int res = 0;
+    for (int i = 0; i < bytes.length; i++) {
+      res += (bytes[i] | 0x100) << (bytes.length - i - 1);
+    }
+    return res;
+  }
+
   Future<void> _internalLoop(Renderer renderer) async {
     await _lock.acquire();
-    ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 1);
+    // ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 30);
     renderer.render(this);
     _lock.release();
   }

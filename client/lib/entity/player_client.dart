@@ -64,7 +64,7 @@ class PlayerClient extends Entity {
   }
 
   void draw(GameState state) {
-    final r = new Rect(position, 5, 3);
+    final r = Rect(position, 5, 3);
     final ui = state.ui;
     ui.rectangle(r, ui.style.primary);
     ui.move(r.center - Vect(1, 1));

@@ -29,13 +29,15 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'dart:io';
+
 import 'package:server/network/network.dart';
 
 /// Frequency in Hz
 const int fps = 20;
 
 void main() async {
-  final net = await Network.bind('127.0.0.1', 8888);
+  final net = await Network.bind(InternetAddress.anyIPv4, 8888);
   print('host: ' + net.host.address);
   net.heartbeat(fps);
 }

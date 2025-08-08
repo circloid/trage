@@ -39,11 +39,10 @@ import 'client_connection.dart';
 
 class Network {
   Network({required this.socket, required this.host, required this.port});
-  static final DESTINATION_ADDRESS = InternetAddress('192.168.50.255');
-  static Future<Network> bind(String host, int port) async {
+  static Future<Network> bind(InternetAddress host, int port) async {
     final s = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port);
-    final net = new Network(socket: s, host: InternetAddress(host), port: port);
     s.broadcastEnabled = true;
+    final net = new Network(socket: s, host: host, port: port);
     s.listen(net._listenSocketDatagram);
     return net;
   }
@@ -69,11 +68,19 @@ class Network {
   void _publishChanges() {
     for (final room in _rooms.values) {
       final packet = room.getUpdates();
-      socket.send(packet.serialize(), DESTINATION_ADDRESS, 8889);
+      if (packet == null) continue;
+      multicast(packet, room.connections);
+    }
+  }
+
+  void multicast(Packet p, Iterable<ClientConnection> clients) {
+    for (final client in clients) {
+      send(p, client);
     }
   }
 
   void send(Packet p, ClientConnection client) {
+    print(p);
     socket.send(p.serialize(), client.addr, client.port);
   }
 

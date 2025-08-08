@@ -74,7 +74,7 @@ class Network {
         listener.callback(p);
       }
     } catch (e, stack) {
-      print(e);
+      print('Error: $e');
       print(stack);
       exit(1);
     }
@@ -86,7 +86,7 @@ class Network {
 
   void listen(NetworkListenerCallback callback, [Object? watcher]) {
     watcher ??= Object();
-    final listener = new NetworkListener(callback);
+    final listener = NetworkListener(callback);
     _listeners[watcher] = listener;
   }
 

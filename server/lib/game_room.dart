@@ -43,6 +43,10 @@ class Room {
   final Map<String, PlayerServer> clients = {};
   final List<Update> updates = [];
 
+  Iterable<ClientConnection> get connections {
+    return clients.values.map((v) => v.connection);
+  }
+
   bool get isFull => open && clients.length < _maxPlayerCount;
 
   bool isValidClient(String uid) => clients.containsKey(uid);
@@ -59,7 +63,7 @@ class Room {
   PlayerServer join(ClientConnection conn) {
     if (!clients.containsKey(conn.id)) {
       print('added to room $id player ${conn.id}');
-      clients[conn.id] = PlayerServer(Vect.random());
+      clients[conn.id] = PlayerServer(Vect.random(), conn);
     }
     return clients[conn.id]!;
   }
@@ -89,8 +93,11 @@ class Room {
     return res;
   }
 
-  Packet getUpdates() {
+  Packet? getUpdates() {
     final up = maximiseLength(Packet.bodyLength);
+
+    if (up.isEmpty) return null;
+
     final body = up.map((e) => e.serialize()).join(';');
 
     updates.removeRange(0, up.length);

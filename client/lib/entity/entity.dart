@@ -36,9 +36,10 @@ import 'entity_state.dart';
 import 'package:shared/src/shapes/vect.dart';
 
 abstract class Entity {
-  Entity(this.position, {this.priority = 1}) : id = Object();
+  Entity(this.position, {this.priority = 1})
+    : id = identityHashCode(const Object());
 
-  final Object id;
+  int id;
 
   Vect position;
 

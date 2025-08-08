@@ -43,6 +43,16 @@ extension BitOperations on int {
   }
 }
 
+extension ListBitOperation on List<int> {
+  int toInt() {
+    int res = 0;
+    for (int i = 0; i < length; i++) {
+      res += (this[i] | 0x100) << (length - i - 1);
+    }
+    return res;
+  }
+}
+
 /// PacketCommand is a 1 byte integer (256 combination) that is the first field of the UDP Packet
 enum PacketCommand {
   // Player actions
@@ -114,7 +124,7 @@ class Packet {
   Packet(this.cmd, {this.flags = const [], this.body = ''});
 
   factory Packet.deserialize(List<int> buffer) {
-    if (buffer.length < 4) {
+    if (buffer.length < 5) {
       throw PacketException(
         'Invalid buffer length',
         'It should be at least 4 bytes, given ${buffer.length}',
