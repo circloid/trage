@@ -30,10 +30,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'package:server/entity.dart';
+import 'package:shared/shared.dart';
 
 class Update {
   Update(this.entity, this.property, this.value);
   final Entity entity;
   final int property;
   final String value;
+
+  String serialize() {
+    String res = '';
+
+    res += String.fromCharCodes(entity.id.bit(2));
+    res += String.fromCharCodes(property.bit(1));
+    res += value;
+
+    return res;
+  }
 }

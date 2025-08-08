@@ -41,12 +41,21 @@ class Vect {
     return Vect(r.nextDouble(), r.nextDouble());
   }
 
+  factory Vect.deserialize(String value) {
+    final Iterable<num> l = value.split('-').map(num.parse);
+    return Vect(l.elementAt(0), l.elementAt(1));
+  }
+
   static Vect get zero => Vect(0, 0);
 
   num x;
   num y;
 
   Vect get copy => Vect(this.x, this.y);
+
+  String serialize() {
+    return '$x-$y';
+  }
 
   Vect operator +(dynamic other) {
     return operation(other, (a, b) => a + b);

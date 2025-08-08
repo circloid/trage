@@ -107,7 +107,7 @@ enum PacketFlag {
 /// +--------------------------------------------+
 /// CMD: 2 byte
 /// Flag: 1 byte
-/// Body length: 1 bytes
+/// Body length: 2 bytes
 /// Body: variable length
 /// +--------------------------------------------+
 class Packet {
@@ -122,18 +122,18 @@ class Packet {
     }
     final cmd = PacketCommand.deserialize(buffer.sublist(0, 2));
     final flags = PacketFlag.deserialize(buffer[2]);
-    final body = String.fromCharCodes(buffer.sublist(4));
+    final body = String.fromCharCodes(buffer.sublist(5));
 
     return Packet(cmd, flags: flags, body: body);
   }
-
+  static const int bodyLength = 0x10000;
   final PacketCommand cmd;
   final List<PacketFlag> flags;
   final String body;
 
   List<int> serialize() {
     final bytes = body.codeUnits.length;
-    if (bytes > 0xFF) {
+    if (bytes >= bodyLength) {
       throw const PacketException(
         'Error during serialization',
         'Body length oversized',
@@ -142,7 +142,7 @@ class Packet {
 
     final int flag = PacketFlag.serialize(flags);
 
-    return [...cmd.serialize(), flag, bytes, ...body.codeUnits];
+    return [...cmd.serialize(), flag, ...bytes.bit(2), ...body.codeUnits];
   }
 
   @override

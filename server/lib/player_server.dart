@@ -29,16 +29,16 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:server/network/client_connection.dart';
 import 'package:shared/shared.dart';
+import './entity.dart';
 
-class PlayerServer {
-  PlayerServer(this.position, this.connection);
-  Vect position;
-  ClientConnection connection;
+class PlayerServer extends Entity {
+  PlayerServer(super.vect);
   double speed = 1;
 
   void move(int direction) {
-    position += Vect.fromAngle(direction / 2) * speed;
+    vect += Vect.fromAngle(direction / 2) * speed;
   }
+
+  void shoot() {}
 }

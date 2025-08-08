@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import 'package:server/network/client_connection.dart';
 import 'package:server/player_server.dart';
+import 'package:server/update.dart';
 import 'package:shared/shared.dart';
 
 class Room {
@@ -41,6 +42,8 @@ class Room {
   bool open = false;
   final Map<String, PlayerServer> clients = {};
   final List<Update> updates = [];
+
+  bool get isFull => open && clients.length < _maxPlayerCount;
 
   bool isValidClient(String uid) => clients.containsKey(uid);
 
@@ -56,12 +59,10 @@ class Room {
   PlayerServer join(ClientConnection conn) {
     if (!clients.containsKey(conn.id)) {
       print('added to room $id player ${conn.id}');
-      clients[conn.id] = PlayerServer(Vect.random(), conn);
+      clients[conn.id] = PlayerServer(Vect.random());
     }
     return clients[conn.id]!;
   }
-
-  bool get isFull => open && clients.length < _maxPlayerCount;
 
   void updatePlayerPosition(String uid, int direction) {
     if (!partecipate(uid)) {
@@ -71,5 +72,30 @@ class Room {
     final player = clients[uid]!;
 
     player.move(direction);
+    final update = Update(player, 1, player.vect.serialize());
+    updates.add(update);
+  }
+
+  List<Update> maximiseLength(int max) {
+    final List<Update> res = [];
+    int len = 0;
+    for (final u in updates) {
+      len += u.serialize().length;
+      if (len > max) {
+        return res;
+      }
+      res.add(u);
+    }
+    return res;
+  }
+
+  Packet getUpdates() {
+    final up = maximiseLength(Packet.bodyLength);
+    final body = up.map((e) => e.serialize()).join(';');
+
+    updates.removeRange(0, up.length);
+    final Packet p = Packet(PacketCommand.tick, body: body);
+
+    return p;
   }
 }
