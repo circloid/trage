@@ -29,11 +29,10 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import 'package:server/entity.dart';
+import 'package:shared/shared.dart';
 
-class Update {
-  Update(this.entity, this.property, this.value);
-  final Entity entity;
-  final int property;
-  final String value;
+abstract class Entity {
+  Entity(this.vect) : id = identityHashCode(Object());
+  final Vect vect;
+  final int id;
 }

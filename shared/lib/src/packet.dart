@@ -29,13 +29,28 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+extension BitOperations on int {
+  List<int> bit(int length) {
+    final res = <int>[];
+    int char;
+
+    for (int i = 0; i < length; i++) {
+      char = (this << i) & 0x100;
+      res.add(char);
+    }
+
+    return res;
+  }
+}
+
 /// PacketCommand is a 1 byte integer (256 combination) that is the first field of the UDP Packet
 enum PacketCommand {
   // Player actions
   join(1),
   leave(2),
   move(3),
-  shot(4);
+  shot(4),
+  tick(5);
 
   const PacketCommand(this.value);
   factory PacketCommand.deserialize(List<int> buffer) {
