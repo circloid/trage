@@ -39,7 +39,7 @@ class Room {
   factory Room.quick() => Room(identityHashCode(Object()).toString());
   static const int _maxPlayerCount = 8;
   final String id;
-  bool open = false;
+  bool open = true;
   final Map<String, PlayerServer> clients = {};
   final List<Update> updates = [];
 
@@ -47,7 +47,7 @@ class Room {
     return clients.values.map((v) => v.connection);
   }
 
-  bool get isFull => open && clients.length < _maxPlayerCount;
+  bool get isFull => open && clients.length >= _maxPlayerCount;
 
   bool isValidClient(String uid) => clients.containsKey(uid);
 

@@ -126,6 +126,7 @@ class Network {
 
   void joinRoom(ClientConnection sender, Packet packet) {
     final roomId = packet.body;
+    print(roomId);
     Room room;
     if (roomId.isEmpty) {
       room = quickJoin();
@@ -143,17 +144,18 @@ class Network {
     Room? freeRoom = firstFreeRoom();
     if (freeRoom == null) {
       freeRoom = Room.quick();
+      print(freeRoom.id);
       _rooms[freeRoom.id] = freeRoom;
     }
     return freeRoom;
   }
 
   Room? firstFreeRoom() {
-    Room? freeRoom = _rooms[0];
     for (final room in _rooms.values) {
-      if (room.open && room.isFull) freeRoom = room;
+      print(room.id);
+      if (room.open && !room.isFull) return room;
     }
-    return freeRoom;
+    return null;
   }
 
   Future<void> movePlayer(ClientConnection sender, Packet packet) async {
