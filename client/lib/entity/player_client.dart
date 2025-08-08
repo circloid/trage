@@ -29,6 +29,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import 'package:client/entity/bullet.dart';
 import 'package:client/entity/entity.dart';
 import 'package:client/network/network.dart';
 import 'package:shared/shared.dart';
@@ -39,6 +40,7 @@ import '../renderer.dart';
 class PlayerClient extends Entity {
   PlayerClient(super.position);
   int direction = 0;
+  final List<Bullet> bullets = [];
   static final _chars = ['▶', '▼', '◀', '▲'];
 
   @override
@@ -52,7 +54,11 @@ class PlayerClient extends Entity {
     renderer.registerKeyMap(' ', fire);
   }
 
-  void fire() {}
+  void fire() {
+    final net = global.get<Network>();
+    final p = Packet(PacketCommand.shot, body: direction.toString());
+    net.send(p);
+  }
 
   void _move(num angle) {
     // final net = global.get<Network>();

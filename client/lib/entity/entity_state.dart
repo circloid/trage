@@ -30,3 +30,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 enum EntityState { created, active, disabled, disposed }
+
+enum EntityType {
+  wall(0),
+  obstacle(1),
+  enemy(2),
+  player(3);
+
+  const EntityType(this.value);
+  final int value;
+}

@@ -63,6 +63,8 @@ class Renderer {
     _insertSortedKey(e);
   }
 
+  Entity get(int id) => _entities[id]!;
+
   bool contains(Entity e) => containsId(e.id);
 
   bool containsId(int id) => _entities.containsKey(id);

@@ -30,20 +30,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 import 'package:client/entity/entity.dart';
+import 'package:client/game_state.dart';
+import 'package:gesso/gesso.dart';
+import 'package:shared/shared.dart';
 
-import '../game_state.dart';
-import '../renderer.dart';
+class Bullet extends Entity {
+  Bullet(super.position, this.direction, {this.style, this.frame = 10});
+  final int direction;
+  final int frame;
+  Gesso? style;
 
-class Settings extends Entity {
-  Settings(super.position);
+  static const String _char = '●';
 
-  @override
-  void onInit(Renderer renderer) {
-    super.onInit(renderer);
-    renderer.registerKeyMap(';', () {});
+  void draw(GameState state) {
+    String out = _char;
+    if (style != null) out = style!(out);
+    state.ui.move(position);
+    state.ui.out(out);
   }
 
-  void draw(GameState state) {}
-
-  void update() {}
+  void update() {
+    super.update();
+    if (currentFrameCount < frame) return;
+    position += Vect.fromAngle(direction / 2);
+    currentFrameCount = 0;
+  }
 }

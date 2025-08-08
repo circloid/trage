@@ -99,13 +99,16 @@ class GameState {
   }
 
   void _handleEntityUpdate(String entity) {
-    // print('Dai entity $entity');
     final id = toInt(entity.substring(0, 2).codeUnits);
     final pos = entity.substring(3);
+    final vect = Vect.deserialize(pos);
     if (!renderer.containsId(id)) {
-      final e = Enemy(Vect.deserialize(pos));
+      final e = Enemy(vect);
       e.id = id;
       renderer.put(e);
+    } else {
+      final e = renderer.get(id);
+      e.position = vect;
     }
   }
 
@@ -119,7 +122,7 @@ class GameState {
 
   Future<void> _internalLoop(Renderer renderer) async {
     await _lock.acquire();
-    // ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 30);
+    ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 2);
     renderer.render(this);
     _lock.release();
   }

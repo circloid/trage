@@ -56,16 +56,12 @@ class Network {
 
   void heartbeat(int fps) {
     final delta = Duration(milliseconds: (1000 / fps).round());
-    _timer = Timer.periodic(delta, (_) async {
-      _checkChanges();
-      _publishChanges();
-    });
+    _timer = Timer.periodic(delta, _publishChanges);
   }
 
   void death() => _timer?.cancel();
 
-  void _checkChanges() {}
-  void _publishChanges() {
+  void _publishChanges(_) {
     for (final room in _rooms.values) {
       final packet = room.getUpdates();
       if (packet == null) continue;
@@ -74,9 +70,11 @@ class Network {
   }
 
   void multicast(Packet p, Iterable<ClientConnection> clients) {
+    print('******* MULTICAST *******');
     for (final client in clients) {
       send(p, client);
     }
+    print('***** END MULTICAST *****');
   }
 
   void send(Packet p, ClientConnection client) {

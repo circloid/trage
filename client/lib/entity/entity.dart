@@ -40,6 +40,7 @@ abstract class Entity {
     : id = identityHashCode(const Object());
 
   int id;
+  int currentFrameCount = 0;
 
   Vect position;
 
@@ -80,5 +81,8 @@ abstract class Entity {
 
   void draw(GameState state);
 
-  void update();
+  void update() {
+    currentFrameCount++;
+    currentFrameCount |= 0x10000;
+  }
 }
