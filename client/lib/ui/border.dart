@@ -66,7 +66,7 @@ class Border {
   final String bottomRight;
 
   Border wrap(Gesso g) {
-    return new Border(
+    return Border(
       horizontal: g(horizontal),
       vertical: g(vertical),
       topLeft: g(topLeft),

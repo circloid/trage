@@ -36,17 +36,56 @@ import 'package:shared/shared.dart';
 class Enemy extends Entity {
   Enemy(super.position);
   int direction = 0;
-  static final _chars = ['L', 'D', 'R', 'U'];
+  int health = 100;
+  static final _chars = ['R', 'D', 'L', 'U']; // Right, Down, Left, Up
 
   void fire() {}
 
+  @override
   void draw(GameState state) {
-    final r = Rect(position, 5, 3);
     final ui = state.ui;
-    ui.rectangle(r, ui.style.primary);
-    ui.move(r.center - Vect(1, 1));
-    ui.out(_chars[direction]);
+
+    // Draw enemy as 3x3 red arrows
+    final char = _chars[direction];
+    if (health > 50) {
+      // Healthy enemy - solid red
+      ui.move(position);
+      ui.out(ui.style.error(char));
+      ui.move(position + Vect(-1, 1));
+      ui.out(ui.style.error(char));
+      ui.move(position + Vect(1, 1));
+      ui.out(ui.style.error(char));
+      ui.move(position + Vect(0, 1));
+      ui.out(ui.style.error(char));
+    } else if (health > 0) {
+      // Damaged enemy - yellow
+      ui.move(position);
+      ui.out(ui.style.warning(char));
+      ui.move(position + Vect(-1, 1));
+      ui.out(ui.style.warning(char));
+      ui.move(position + Vect(1, 1));
+      ui.out(ui.style.warning(char));
+      ui.move(position + Vect(0, 1));
+      ui.out(ui.style.warning(char));
+    } else {
+      // Dead enemy - gray X
+      ui.move(position);
+      ui.out(ui.style.secondary('X'));
+    }
   }
 
-  void update() {}
+  void takeDamage(int damage) {
+    health -= damage;
+    if (health < 0) health = 0;
+
+    if (health <= 0) {
+      markForRemoval();
+    }
+  }
+
+  @override
+  void update() {
+    super.update();
+    // Add any enemy-specific update logic here
+  }
 }

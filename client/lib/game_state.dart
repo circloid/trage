@@ -1,37 +1,9 @@
-/*
-BSD 3-Clause License
-
-Copyright (c) 2025, circloid
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-   contributors may be used to endorse or promote products derived from
-   this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// TEMPORARY DEBUG VERSION - Use this to see what's happening with IDs
 
 import 'dart:async';
 
 import 'package:client/entity/enemy.dart';
+import 'package:client/entity/entity.dart';
 import 'package:client/network/network.dart';
 import 'package:shared/shared.dart';
 
@@ -39,8 +11,10 @@ import 'entity/player_client.dart';
 import 'renderer.dart';
 import 'ui/dartboard.dart';
 
+enum GamePhase { menu, waiting, playing, gameOver }
+
 class GameState {
-  GameState(this.ui, [this.fps = 100]);
+  GameState(this.ui, [this.fps = 30]);
 
   final int fps;
   final Dartboard ui;
@@ -48,11 +22,28 @@ class GameState {
   late PlayerClient player;
   late Renderer renderer;
 
+  GamePhase currentPhase = GamePhase.menu;
+  int score = 0;
+  int enemiesDestroyed = 0;
+  bool isConnected = false;
+  final Map<int, Enemy> enemies = {};
+  final Map<int, PlayerClient> otherPlayers = {};
+
+  // Debug info
+  final List<String> debugLog = [];
+  static const int maxDebugLines = 3;
+
+  void _addDebugLog(String message) {
+    debugLog.add(message);
+    if (debugLog.length > maxDebugLines) {
+      debugLog.removeAt(0);
+    }
+  }
+
   String get uid => identityHashCode(this).toString();
 
   Future<void> setup() async {
     renderer = global.get<Renderer>();
-
     renderer.setup();
 
     ui.clear();
@@ -60,29 +51,40 @@ class GameState {
 
     await menu();
 
-    global.get<Network>().listen(_incomingPacket);
+    final network = global.get<Network>();
+    network.listen(_incomingPacket);
 
-    player = PlayerClient(Vect(2, 2));
+    player = PlayerClient(Vect(10, 10), isLocalPlayer: true);
+    player.id = 12345; // Fixed ID for testing
+    _addDebugLog('Local player ID: ${player.id}');
     renderer.put(player);
+
+    currentPhase = GamePhase.waiting;
   }
 
   void loop() {
-    final r = ui.rect.copy;
-    r.vect += Vect(1, 1);
-    // ui.rectangle(r);
-
     Timer.periodic(
       Duration(milliseconds: (1000 / fps).round()),
-      (_) => _internalLoop(renderer),
+      (_) => _internalLoop(),
     );
   }
 
   void _incomingPacket(Packet p) {
-    ui.move(ui.rect.bottomLeft - Vect(-2, 10));
-    ui.out(p.body);
     switch (p.cmd) {
       case PacketCommand.tick:
         _handleServerTick(p.body);
+        break;
+      case PacketCommand.playerJoined:
+        _handlePlayerJoined(p.body);
+        break;
+      case PacketCommand.playerLeft:
+        _handlePlayerLeft(p.body);
+        break;
+      case PacketCommand.gameStart:
+        _handleGameStart();
+        break;
+      case PacketCommand.gameEnd:
+        _handleGameEnd(p.body);
         break;
       default:
         break;
@@ -90,61 +92,248 @@ class GameState {
   }
 
   void _handleServerTick(String body) {
-    // print(body);
+    if (body.isEmpty) return;
+
     final entities = body.split(';');
     for (final entity in entities) {
-      print(entity);
-      _handleEntityUpdate(entity);
+      if (entity.isNotEmpty) {
+        _handleEntityUpdate(entity);
+      }
     }
   }
 
   void _handleEntityUpdate(String entity) {
-    final id = toInt(entity.substring(0, 2).codeUnits);
-    final pos = entity.substring(3);
-    final vect = Vect.deserialize(pos);
-    if (!renderer.containsId(id)) {
-      final e = Enemy(vect);
-      e.id = id;
-      renderer.put(e);
-    } else {
-      final e = renderer.get(id);
-      e.position = vect;
+    try {
+      if (entity.length < 3) return;
+
+      final idBytes = entity.substring(0, 2).codeUnits;
+      final id = _bytesToInt(idBytes);
+      final type = entity.codeUnitAt(2);
+      final data = entity.substring(3);
+
+      _addDebugLog('Update ID:$id Type:$type (Local:${player.id})');
+
+      // CRITICAL: Skip if this is our own player
+      if (id == player.id) {
+        _addDebugLog('Skipped self-update');
+        return;
+      }
+
+      switch (type) {
+        case 1: // Position update
+          _updateEntityPosition(id, data);
+          break;
+        case 2: // Entity spawn
+          _spawnEntity(id, data);
+          break;
+        case 3: // Entity destroy
+          _destroyEntity(id);
+          break;
+      }
+    } catch (e) {
+      _addDebugLog('Parse error: $e');
     }
   }
 
-  int toInt(List<int> bytes) {
+  void _updateEntityPosition(int id, String posData) {
+    try {
+      final vect = Vect.deserialize(posData);
+
+      if (otherPlayers.containsKey(id)) {
+        otherPlayers[id]!.position = vect;
+        _addDebugLog('Updated other player $id');
+      } else if (enemies.containsKey(id)) {
+        enemies[id]!.position = vect;
+        _addDebugLog('Updated enemy $id');
+      } else if (renderer.containsId(id)) {
+        final entity = renderer.get(id);
+        if (entity != player) {
+          entity.position = vect;
+          _addDebugLog('Updated entity $id');
+        }
+      }
+    } catch (e) {
+      _addDebugLog('Update error: $e');
+    }
+  }
+
+  void _spawnEntity(int id, String data) {
+    if (id == player.id) return;
+
+    if (otherPlayers.containsKey(id) ||
+        enemies.containsKey(id) ||
+        renderer.containsId(id)) {
+      _addDebugLog('Entity $id already exists');
+      return;
+    }
+
+    try {
+      final vect = Vect.deserialize(data);
+
+      if (vect.distance(player.position) < 5) {
+        vect.x += 10;
+      }
+
+      final otherPlayer = PlayerClient(vect, isLocalPlayer: false);
+      otherPlayer.id = id;
+      otherPlayers[id] = otherPlayer;
+      renderer.put(otherPlayer);
+      _addDebugLog('Spawned player $id');
+    } catch (e) {
+      _addDebugLog('Spawn error: $e');
+    }
+  }
+
+  void _destroyEntity(int id) {
+    if (otherPlayers.containsKey(id)) {
+      final otherPlayer = otherPlayers.remove(id)!;
+      renderer.del(otherPlayer);
+      _addDebugLog('Destroyed player $id');
+      return;
+    }
+
+    if (enemies.containsKey(id)) {
+      final enemy = enemies.remove(id)!;
+      renderer.del(enemy);
+      enemiesDestroyed++;
+      score += 10;
+      _addDebugLog('Destroyed enemy $id');
+    }
+  }
+
+  void _handlePlayerJoined(String playerInfo) {}
+  void _handlePlayerLeft(String playerInfo) {}
+  void _handleGameStart() {
+    currentPhase = GamePhase.playing;
+  }
+
+  void _handleGameEnd(String result) {
+    currentPhase = GamePhase.gameOver;
+  }
+
+  int _bytesToInt(List<int> bytes) {
     int res = 0;
     for (int i = 0; i < bytes.length; i++) {
-      res += (bytes[i] | 0x100) << (bytes.length - i - 1);
+      res = (res << 8) | bytes[i];
     }
     return res;
   }
 
-  Future<void> _internalLoop(Renderer renderer) async {
+  Future<void> _internalLoop() async {
     await _lock.acquire();
-    ui.bg(Vect(2, 2), ui.width.toInt() - 2, ui.height.toInt() - 2);
-    renderer.render(this);
-    _lock.release();
+
+    try {
+      ui.clear();
+      ui.move(Vect(1, 1));
+
+      final gameArea = Rect(Vect(1, 3), ui.width - 2, ui.height - 8);
+      ui.rectangle(gameArea);
+
+      _drawUI();
+      _cleanupEntities();
+
+      for (final entity in renderer.sortedEntities) {
+        if (entity.state.name == 'active') {
+          if (_isEntityInBounds(entity, gameArea)) {
+            entity.draw(this);
+          }
+        }
+        entity.update();
+      }
+
+      // Draw debug info
+      _drawDebugPanel();
+
+      ui.move(Vect(1, ui.height));
+    } finally {
+      _lock.release();
+    }
+  }
+
+  void _drawDebugPanel() {
+    final debugY = ui.height - 5;
+
+    ui.move(Vect(1, debugY));
+    ui.out(ui.style.secondary('DEBUG:'));
+
+    for (int i = 0; i < debugLog.length; i++) {
+      ui.move(Vect(2, debugY + 1 + i));
+      ui.out(ui.style.info(debugLog[i]));
+    }
+  }
+
+  bool _isEntityInBounds(Entity entity, Rect gameArea) {
+    return entity.position.x >= gameArea.vect.x &&
+        entity.position.x < gameArea.vect.x + gameArea.width &&
+        entity.position.y >= gameArea.vect.y &&
+        entity.position.y < gameArea.vect.y + gameArea.height;
+  }
+
+  void _cleanupEntities() {
+    final toRemove = <Entity>[];
+
+    for (final entity in renderer.sortedEntities) {
+      if (entity.shouldRemove) {
+        toRemove.add(entity);
+        if (entity is Enemy) {
+          enemies.remove(entity.id);
+        } else if (entity is PlayerClient && entity.id != player.id) {
+          otherPlayers.remove(entity.id);
+        }
+      }
+    }
+
+    for (final entity in toRemove) {
+      renderer.del(entity);
+    }
+  }
+
+  void _drawUI() {
+    ui.move(Vect(2, 1));
+    ui.out(ui.style.primary('TRAGE'));
+
+    ui.move(Vect(10, 1));
+    ui.out(ui.style.warning('Score: $score'));
+
+    ui.move(Vect(25, 1));
+    ui.out(ui.style.secondary('Players: ${otherPlayers.length}'));
+
+    ui.move(Vect(ui.width - 20, 1));
+    final statusStyle = isConnected ? ui.style.success : ui.style.error;
+    ui.out(statusStyle(isConnected ? 'ONLINE' : 'OFFLINE'));
+
+    ui.move(Vect(2, ui.height - 1));
+    ui.out(ui.style.info('WASD: Move | SPACE: Shoot'));
   }
 
   void quick() {
     final p = Packet(PacketCommand.join);
     final net = global.get<Network>();
     net.send(p);
+    isConnected = true;
   }
 
   void join() {}
   void create() {}
 
   Future<void> menu() async {
-    final String title = ui.style.primary('\$ trage');
+    ui.clear();
+
+    final String title = ui.style.primary('\$ TRAGE - Terminal Battle Arena');
     final List<FutureOr<void> Function()> funcs = [quick, join, create];
     final List<String> choices = [
-      ui.style.warning('  1 - Quick Play  '),
-      ui.style.secondary('  2 -Join Room  '),
-      ui.style.error('  3 - Create Room  '),
+      ui.style.warning('  Quick Play (Debug Mode)  '),
+      ui.style.secondary('  Join Room (Coming Soon)   '),
+      ui.style.error('  Create Room (Coming Soon) '),
     ];
-    final choice = await ui.dialog(choices, ui.rect - 10, title: title);
-    funcs[choice]();
+
+    final menuRect = Rect(
+      Vect(ui.width / 4, ui.height / 4),
+      ui.width / 2,
+      ui.height / 2,
+    );
+
+    final choice = await ui.dialog(choices, menuRect, title: title);
+    await funcs[choice]();
   }
 }

@@ -34,5 +34,5 @@ import 'package:shared/shared.dart';
 abstract class Entity {
   Entity(this.vect) : id = identityHashCode(Object());
   Vect vect;
-  final int id;
+  int id;
 }

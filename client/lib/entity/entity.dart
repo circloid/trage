@@ -36,11 +36,13 @@ import 'entity_state.dart';
 import 'package:shared/src/shapes/vect.dart';
 
 abstract class Entity {
-  Entity(this.position, {this.priority = 1})
-    : id = identityHashCode(const Object());
+  Entity(this.position, {this.priority = 1, this.maxLifetime})
+    : id = identityHashCode(Object());
 
   int id;
   int currentFrameCount = 0;
+  int? maxLifetime; // Optional lifetime in frames
+  bool shouldRemove = false;
 
   Vect position;
 
@@ -57,7 +59,7 @@ abstract class Entity {
   /// This will be called at the start when it has been added to the [Renderer].
   ///
   /// If this entity was disposed it throws an [Exception].
-  /// You can override this to initialize the entity before redered
+  /// You can override this to initialize the entity before rendered
   void onInit(Renderer renderer) {
     if (_state == EntityState.disposed) {
       throw Exception('Bad state: entity already disposed');
@@ -83,6 +85,33 @@ abstract class Entity {
 
   void update() {
     currentFrameCount++;
-    currentFrameCount |= 0x10000;
+
+    // Check lifetime and mark for removal if exceeded
+    if (maxLifetime != null && currentFrameCount >= maxLifetime!) {
+      shouldRemove = true;
+    }
+
+    // Prevent overflow by resetting at a reasonable limit
+    if (currentFrameCount > 0x8000) {
+      currentFrameCount = 0;
+    }
+  }
+
+  // Check if entity is within game bounds
+  bool isWithinBounds(Vect minBounds, Vect maxBounds) {
+    return position.x >= minBounds.x &&
+        position.x <= maxBounds.x &&
+        position.y >= minBounds.y &&
+        position.y <= maxBounds.y;
+  }
+
+  // Basic collision detection
+  bool collidesWith(Entity other, double radius) {
+    return position.distance(other.position) <= radius;
+  }
+
+  // Mark entity for removal
+  void markForRemoval() {
+    shouldRemove = true;
   }
 }

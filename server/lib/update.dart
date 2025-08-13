@@ -41,8 +41,15 @@ class Update {
   String serialize() {
     String res = '';
 
-    res += String.fromCharCodes(entity.id.bit(2));
-    res += String.fromCharCodes(property.bit(1));
+    // Use entity ID directly (ensure it's a proper integer)
+    final entityId = entity.id;
+    final idBytes = entityId.bit(2);
+    res += String.fromCharCodes(idBytes);
+
+    // Add property type (1 byte)
+    res += String.fromCharCode(property);
+
+    // Add value data
     res += value;
 
     return res;

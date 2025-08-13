@@ -41,83 +41,98 @@ class Dartboard {
   Dartboard(this.style);
   static const String _esc = '\x1B';
   Style style;
-  // final Semaphore _lock = Semaphore();
+  Vect? _lastCursorPos; // Track cursor position to minimize moves
 
   Rect get rect => Rect(Vect.zero, width, height);
 
   double get width => stdout.terminalColumns.toDouble();
   double get height => stdout.terminalLines.toDouble();
 
-  void clear() => out('$_esc[2J');
+  void clear() {
+    out('$_esc[2J'); // Clear entire screen
+    out('$_esc[H'); // Move cursor to home position (1,1)
+    _lastCursorPos = Vect(1, 1);
+  }
 
   void show() => out('$_esc[?25h');
   void hide() => out('$_esc[?25l');
 
   void out(Object? obj) {
-    // await _lock.acquire();
     stdout.write(obj);
-    // _lock.release();
   }
 
   void move(Vect v) {
-    out('$_esc[${v.y.round()};${v.x.round()}H');
+    // Clamp coordinates to screen bounds
+    final clampedX = v.x.clamp(1, width).round();
+    final clampedY = v.y.clamp(1, height).round();
+    final newPos = Vect(clampedX.toDouble(), clampedY.toDouble());
+
+    // Only move cursor if position actually changed
+    if (_lastCursorPos == null ||
+        _lastCursorPos!.x != newPos.x ||
+        _lastCursorPos!.y != newPos.y) {
+      out('$_esc[${clampedY};${clampedX}H');
+      _lastCursorPos = newPos;
+    }
   }
 
   void horizontal(Vect start, int length, {String? char, Gesso? g}) {
     char ??= style.border.horizontal;
     if (g != null) char = g(char);
 
-    start = start.copy;
     move(start);
-    for (int i = 0; i < length; i++) {
-      out(char);
-    }
+    // Draw entire horizontal line at once to reduce flicker
+    final line = char * length;
+    out(line);
   }
 
   void vertical(Vect start, int length, {String? char, Gesso? g}) {
     char ??= style.border.vertical;
     if (g != null) char = g(char);
 
-    start = start.copy;
-    move(start);
+    // Draw vertical line more efficiently
     for (int i = 0; i < length; i++) {
+      move(start + Vect(0, i.toDouble()));
       out(char);
-      start.y++;
-      move(start);
     }
   }
 
   void bg(Vect start, int width, int height, [Gesso? g]) {
-    move(start);
     g ??= Gesso();
-    final char = g(' ' * width);
+    final char = g(' ');
+
+    // Draw background more efficiently
     for (int i = 0; i < height; i++) {
-      out(char);
       move(start + Vect(0, i.toDouble()));
+      out(char * width);
     }
   }
 
   void rectangle(Rect r, [Gesso? g]) {
     final w = r.width.round();
     final h = r.height.round();
-    horizontal(r.vect + Vect(1, 0), w - 2, g: g);
-    horizontal(r.vect + Vect(1, h - 1), w - 2, g: g);
-    vertical(r.vect + Vect(0, 1), h - 2, g: g);
-    vertical(r.vect + Vect(w - 1, 1), h - 2, g: g);
 
+    // Draw border more efficiently by drawing full lines
     Border colored = style.border;
     if (g != null) colored = colored.wrap(g);
 
-    // Corner
+    // Top border
     move(r.vect);
-    out(colored.topLeft);
-    move(r.vect + Vect(w - 1, 0));
-    out(colored.topRight);
+    out(colored.topLeft + (colored.horizontal * (w - 2)) + colored.topRight);
 
+    // Side borders
+    for (int i = 1; i < h - 1; i++) {
+      move(r.vect + Vect(0, i.toDouble()));
+      out(colored.vertical);
+      move(r.vect + Vect(w - 1, i.toDouble()));
+      out(colored.vertical);
+    }
+
+    // Bottom border
     move(r.vect + Vect(0, h - 1));
-    out(colored.bottomLeft);
-    move(r.vect + Vect(w - 1, h - 1));
-    out(colored.bottomRight);
+    out(
+      colored.bottomLeft + (colored.horizontal * (w - 2)) + colored.bottomRight,
+    );
   }
 
   void drawOptions(
@@ -128,19 +143,20 @@ class Dartboard {
   }) {
     rectangle(surround);
     final Vect newPos = surround.vect + Vect(2, 2);
-    move(newPos);
+
     if (title != null) {
+      move(newPos);
       out(title);
-      newPos.y += 4;
-      move(newPos);
-    }
-    for (final (index, choice) in choices.indexed) {
-      if (index == active)
-        out(choice.reversed);
-      else
-        out(choice);
       newPos.y += 2;
-      move(newPos);
+    }
+
+    for (final (index, choice) in choices.indexed) {
+      move(newPos + Vect(0, index * 2));
+      if (index == active) {
+        out(choice.reversed);
+      } else {
+        out(choice);
+      }
     }
   }
 
@@ -151,30 +167,39 @@ class Dartboard {
   }) async {
     int active = 0;
     void draw() => drawOptions(choices, surround, title: title, active: active);
+
+    // Initial draw
     draw();
 
     final r = global.get<Renderer>();
     final c = Completer<int>();
-    // arrow up
+
+    // Register key handlers
     final arrUp = r.registerKeyMap('w', () {
       if (active <= 0) return;
       active--;
       draw();
     });
-    // arrow down
+
     final arrDown = r.registerKeyMap('s', () {
       if (active >= choices.length - 1) return;
       active++;
       draw();
     });
-    // enter
+
     final enter = r.newKeyMap([13], () => c.complete(active));
     final enterUnix = r.newKeyMap([10], () => c.complete(active));
+    final space = r.newKeyMap([32], () => c.complete(active));
+
     final res = await c.future;
+
+    // Cleanup
     r.removeKeyMap(arrUp);
     r.removeKeyMap(arrDown);
     r.removeKeyMap(enter);
     r.removeKeyMap(enterUnix);
+    r.removeKeyMap(space);
+
     return res;
   }
 }

@@ -42,7 +42,7 @@ import 'keymap.dart';
 class Renderer {
   /// It represents the entire objects that should be rendered in the canvas
   final Map<int, Entity> _entities = {};
-  final List<Entity> _sortedEntities = [];
+  final List<Entity> sortedEntities = [];
   final Map<Object, KeymapListener> _keymaps = {};
   final List<RawkeyListener> _rawkeyListener = [];
 
@@ -70,14 +70,39 @@ class Renderer {
   bool containsId(int id) => _entities.containsKey(id);
 
   void render(GameState state) {
-    for (final entity in _sortedEntities) {
-      entity.draw(state);
-      entity.update();
+    // Clean up entities marked for removal first
+    _cleanupMarkedEntities();
+
+    // Render all active entities
+    for (final entity in sortedEntities) {
+      if (entity.state == EntityState.active) {
+        try {
+          entity.draw(state);
+          entity.update();
+        } catch (e) {
+          print('Error rendering entity ${entity.id}: $e');
+          entity.markForRemoval();
+        }
+      }
+    }
+  }
+
+  void _cleanupMarkedEntities() {
+    final toRemove = <Entity>[];
+
+    for (final entity in sortedEntities) {
+      if (entity.shouldRemove || entity.state == EntityState.disposed) {
+        toRemove.add(entity);
+      }
+    }
+
+    for (final entity in toRemove) {
+      _removeEntity(entity);
     }
   }
 
   bool del(Entity entity) {
-    final removed = _entities.remove(entity);
+    final removed = _entities.remove(entity.id);
     if (removed == null) return false;
     _removeEntity(entity);
     return true;
@@ -88,23 +113,24 @@ class Renderer {
 
     _entities[e.id] = e;
 
-    for (; index < _sortedEntities.length; index++) {
-      if (_sortedEntities[index].priority >= e.priority) break;
+    for (; index < sortedEntities.length; index++) {
+      if (sortedEntities[index].priority >= e.priority) break;
     }
-    _sortedEntities.insert(index, e);
+    sortedEntities.insert(index, e);
   }
 
   Future<void> _removeEntity(Entity entity) async {
-    final removed = _entities.remove(entity.id);
-    if (removed != null) {
+    _entities.remove(entity.id);
+    sortedEntities.remove(entity);
+
+    if (entity.state != EntityState.disposed) {
       entity.dispose();
     }
-    _sortedEntities.remove(entity);
   }
 
   Object registerKeyMap(String char, KeymapCallback on) {
     if (char.length != 1) {
-      throw Exception('\'$char\' must be contains only 1 character');
+      throw Exception('\'$char\' must contain only 1 character');
     }
     return newKeyMap(char.codeUnits, on);
   }
@@ -132,25 +158,64 @@ class Renderer {
   void registerRawKey(RawkeyListener listener) => _rawkeyListener.add(listener);
 
   Future<void> _onKeyboardInput(List<int> buffer) async {
-    // await _lock.acquire();
     try {
       buffer = List.unmodifiable(buffer);
+
+      // Handle raw key listeners first
       for (final raw in _rawkeyListener) {
-        raw(buffer);
+        try {
+          raw(buffer);
+        } catch (e) {
+          print('Error in raw key listener: $e');
+        }
       }
+
+      // Handle keymap listeners
       for (final keymap in _keymaps.values) {
         if (!keymap.equals(buffer)) continue;
-        keymap.on();
+        try {
+          keymap.on();
+        } catch (e) {
+          print('Error in keymap callback: $e');
+        }
       }
-    } finally {}
+    } catch (e) {
+      print('Error processing keyboard input: $e');
+    }
   }
 
-  void onReceivePacket(Packet packet) {}
+  void onReceivePacket(Packet packet) {
+    // Handle any renderer-specific packet processing here
+    // This could include entity spawn/destroy commands
+  }
 
   void dispose() {
+    // Clean up all entities
+    for (final entity in sortedEntities.toList()) {
+      entity.dispose();
+    }
+
     _rawkeyListener.clear();
     _keymaps.clear();
     _entities.clear();
-    _sortedEntities.clear();
+    sortedEntities.clear();
+  }
+
+  // Helper methods for debugging and monitoring
+  int get entityCount => _entities.length;
+
+  List<Entity> getEntitiesByType<T>() {
+    return sortedEntities.whereType<T>().cast<Entity>().toList();
+  }
+
+  void printEntityStats() {
+    print('Renderer Stats:');
+    print('  Total entities: ${_entities.length}');
+    print(
+      '  Active entities: ${sortedEntities.where((e) => e.state == EntityState.active).length}',
+    );
+    print(
+      '  Disposed entities: ${sortedEntities.where((e) => e.state == EntityState.disposed).length}',
+    );
   }
 }

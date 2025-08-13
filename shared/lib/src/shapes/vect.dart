@@ -34,11 +34,15 @@ import 'dart:math';
 class Vect {
   Vect(this.x, this.y);
 
-  factory Vect.fromAngle(num angle) => Vect(cos(angle * pi), sin(angle * pi));
+  // Fixed: angle should be in radians, not multiplied by pi
+  factory Vect.fromAngle(num angle) => Vect(cos(angle), sin(angle));
 
   factory Vect.random() {
     final r = Random();
-    return Vect(r.nextDouble(), r.nextDouble());
+    return Vect(
+      r.nextDouble() * 100,
+      r.nextDouble() * 50,
+    ); // Better random bounds
   }
 
   factory Vect.deserialize(String value) {
@@ -79,9 +83,17 @@ class Vect {
   }
 
   double angle(Vect other) {
-    final dy = y - other.y;
-    final dx = x - other.x;
+    final dy = other.y - y; // Fixed: direction matters for angle
+    final dx = other.x - x;
     return atan2(dy, dx);
+  }
+
+  double get magnitude => sqrt(x * x + y * y);
+
+  Vect normalize() {
+    final mag = magnitude;
+    if (mag == 0) return Vect.zero;
+    return Vect(x / mag, y / mag);
   }
 
   Vect operation(dynamic other, num Function(num, num) func) {
@@ -89,10 +101,27 @@ class Vect {
     if (other is int || other is double || other is num) {
       return Vect(func(x, other), func(y, other));
     }
-    throw Exception('Unsupported operator /');
+    throw Exception('Unsupported operator with type ${other.runtimeType}');
   }
 
-  Vect vector(Vect other) => Vect(x - other.x, y - other.y);
+  Vect vector(Vect other) => Vect(other.x - x, other.y - y);
 
   Vect center(Vect other) => (this + other) / 2;
+
+  // Add bounds checking for game boundaries
+  Vect clamp(Vect min, Vect max) {
+    return Vect(x.clamp(min.x, max.x), y.clamp(min.y, max.y));
+  }
+
+  @override
+  String toString() => 'Vect($x, $y)';
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! Vect) return false;
+    return x == other.x && y == other.y;
+  }
+
+  @override
+  int get hashCode => Object.hash(x, y);
 }

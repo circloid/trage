@@ -32,14 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extension BitOperations on int {
   List<int> bit(int length) {
     final res = <int>[];
-    int char;
+    int value = this;
 
     for (int i = 0; i < length; i++) {
-      char = (this << i) & 0x100;
-      res.add(char);
+      res.add(value & 0xFF); // Get the lowest 8 bits
+      value >>= 8; // Shift right by 8 bits
     }
 
-    return res;
+    return res.reversed.toList(); // Return in big-endian order
   }
 }
 
@@ -47,7 +47,7 @@ extension ListBitOperation on List<int> {
   int toInt() {
     int res = 0;
     for (int i = 0; i < length; i++) {
-      res += (this[i] | 0x100) << (length - i - 1);
+      res = (res << 8) | this[i];
     }
     return res;
   }
@@ -60,7 +60,12 @@ enum PacketCommand {
   leave(2),
   move(3),
   shot(4),
-  tick(5);
+  tick(5),
+  // Game management
+  playerJoined(6),
+  playerLeft(7),
+  gameStart(8),
+  gameEnd(9);
 
   const PacketCommand(this.value);
   factory PacketCommand.deserialize(List<int> buffer) {
@@ -79,7 +84,7 @@ enum PacketCommand {
   final int value;
 
   List<int> serialize() {
-    return [value >> 8 % 256, value % 256];
+    return [value >> 8, value & 0xFF];
   }
 }
 
@@ -87,7 +92,7 @@ enum PacketFlag {
   compressed(0x1), // Body is compressed in base64
   encrypted(0x2),
   broadcast(0x4),
-  priorityze(0x8);
+  prioritize(0x8);
 
   const PacketFlag(this.value);
 
@@ -103,8 +108,9 @@ enum PacketFlag {
 
   static List<PacketFlag> deserialize(int buffer) {
     final res = <PacketFlag>[];
-    final flags = [compressed, encrypted, broadcast, priorityze];
-    for (int i = 0; i < 8; i++) {
+    final flags = [compressed, encrypted, broadcast, prioritize];
+    for (int i = 0; i < 4; i++) {
+      // Only check first 4 bits since we have 4 flags
       if (((buffer >> i) & 1) == 1) {
         res.add(flags[i]);
       }
@@ -127,23 +133,34 @@ class Packet {
     if (buffer.length < 5) {
       throw PacketException(
         'Invalid buffer length',
-        'It should be at least 4 bytes, given ${buffer.length}',
+        'It should be at least 5 bytes, given ${buffer.length}',
       );
     }
     final cmd = PacketCommand.deserialize(buffer.sublist(0, 2));
     final flags = PacketFlag.deserialize(buffer[2]);
-    final body = String.fromCharCodes(buffer.sublist(5));
+    final bodyLengthBytes = buffer.sublist(3, 5);
+    final bodyLength = bodyLengthBytes.toInt();
+
+    if (buffer.length < 5 + bodyLength) {
+      throw PacketException(
+        'Invalid packet length',
+        'Expected ${5 + bodyLength} bytes, got ${buffer.length}',
+      );
+    }
+
+    final body = String.fromCharCodes(buffer.sublist(5, 5 + bodyLength));
 
     return Packet(cmd, flags: flags, body: body);
   }
+
   static const int bodyLength = 0x10000;
   final PacketCommand cmd;
   final List<PacketFlag> flags;
   final String body;
 
   List<int> serialize() {
-    final bytes = body.codeUnits.length;
-    if (bytes >= bodyLength) {
+    final bodyBytes = body.codeUnits;
+    if (bodyBytes.length >= bodyLength) {
       throw const PacketException(
         'Error during serialization',
         'Body length oversized',
@@ -151,8 +168,9 @@ class Packet {
     }
 
     final int flag = PacketFlag.serialize(flags);
+    final bodyLengthBytes = bodyBytes.length.bit(2);
 
-    return [...cmd.serialize(), flag, ...bytes.bit(2), ...body.codeUnits];
+    return [...cmd.serialize(), flag, ...bodyLengthBytes, ...bodyBytes];
   }
 
   @override
